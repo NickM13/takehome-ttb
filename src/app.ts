@@ -1,13 +1,18 @@
 import express, {
   type ErrorRequestHandler,
   type Express,
+  type Request,
   type RequestHandler,
 } from "express";
 import multer from "multer";
 import { fileURLToPath } from "node:url";
 import { z, ZodError } from "zod";
 import { createReportFilename, createVerificationCsv } from "./csv/report.js";
-import { verifyLabel } from "./domain/verification.js";
+import type { ExpectedLabel, VerificationResult } from "./domain/types.js";
+import {
+  createUnprocessedLabelResult,
+  verifyLabel,
+} from "./domain/verification.js";
 import { AppError } from "./errors.js";
 import type { ExtractionProvider } from "./providers/extraction-provider.js";
 import { validateLabelImage } from "./uploads/image-validation.js";
@@ -24,6 +29,58 @@ const expectedLabelSchema = z.object({
   alcoholContent: z.string().trim().min(1).max(100),
   netContents: z.string().trim().min(1).max(100),
 });
+
+const MAX_BATCH_SIZE = 10;
+const BATCH_CONCURRENCY = 2;
+
+function toExpectedLabel(
+  parsed: z.infer<typeof expectedLabelSchema>,
+): ExpectedLabel {
+  return {
+    brandName: parsed.brandName,
+    classType: parsed.classType,
+    alcoholContent: parsed.alcoholContent,
+    netContents: parsed.netContents,
+    ...(parsed.applicationId ? { applicationId: parsed.applicationId } : {}),
+  };
+}
+
+function parseBatchApplications(value: unknown): ExpectedLabel[] | undefined {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(value) as unknown;
+  } catch {
+    throw new AppError(
+      "INVALID_BATCH_DATA",
+      "The batch application data could not be read. Review the selected labels and try again.",
+      400,
+    );
+  }
+
+  return z
+    .array(expectedLabelSchema)
+    .min(1)
+    .max(MAX_BATCH_SIZE)
+    .parse(parsedJson)
+    .map(toExpectedLabel);
+}
+
+function getUploadedFiles(request: Request): Express.Multer.File[] {
+  if (request.file) return [request.file];
+  if (!request.files) return [];
+  if (Array.isArray(request.files)) return request.files;
+
+  return [...(request.files.labels ?? []), ...(request.files.label ?? [])];
+}
+
+function safeSourceName(file: Express.Multer.File): string {
+  return (
+    file.originalname.replace(/\\/g, "/").split("/").at(-1)?.slice(0, 255) ??
+    "label-image"
+  );
+}
 
 export interface CreateAppOptions {
   provider: ExtractionProvider;
@@ -67,41 +124,118 @@ export function createApp(options: CreateAppOptions): Express {
     storage: multer.memoryStorage(),
     limits: {
       fileSize: options.maxFileSizeBytes,
-      files: 1,
-      fields: 8,
-      fieldSize: 10_000,
+      files: MAX_BATCH_SIZE,
+      fields: 10,
+      fieldSize: 50_000,
     },
   });
 
   const handleVerification: RequestHandler = async (request, response) => {
-    if (!request.file) {
+    const files = getUploadedFiles(request);
+    if (files.length === 0) {
       throw new AppError(
         "LABEL_REQUIRED",
-        "Choose a label image before starting verification.",
+        "Choose at least one label image before starting verification.",
         400,
       );
     }
 
-    const startedAt = performance.now();
-    const parsedExpected = expectedLabelSchema.parse(request.body);
-    const expected = {
-      brandName: parsedExpected.brandName,
-      classType: parsedExpected.classType,
-      alcoholContent: parsedExpected.alcoholContent,
-      netContents: parsedExpected.netContents,
-      ...(parsedExpected.applicationId
-        ? { applicationId: parsedExpected.applicationId }
-        : {}),
-    };
-    const image = await validateLabelImage(request.file, {
-      maxPixels: options.maxImagePixels,
-    });
+    const requestBody: unknown = request.body;
+    const applicationsValue: unknown =
+      typeof requestBody === "object" && requestBody !== null
+        ? (Reflect.get(requestBody, "applications") as unknown)
+        : undefined;
+    const batchApplications = parseBatchApplications(applicationsValue);
+    if (batchApplications && batchApplications.length !== files.length) {
+      throw new AppError(
+        "BATCH_LENGTH_MISMATCH",
+        "Each selected label must have one set of application values.",
+        400,
+      );
+    }
 
-    const extracted = await options.provider.extract(image);
-    const result = verifyLabel(expected, extracted, image.originalName, 0);
-    result.processingTimeMs = Math.round(performance.now() - startedAt);
-    const csv = createVerificationCsv(result);
-    const filename = createReportFilename(expected.applicationId);
+    if (files.length > 1 && !batchApplications) {
+      throw new AppError(
+        "BATCH_APPLICATIONS_REQUIRED",
+        "Review the application values for every selected label before verifying the batch.",
+        400,
+      );
+    }
+
+    const expectedLabels = batchApplications ?? [
+      toExpectedLabel(expectedLabelSchema.parse(request.body)),
+    ];
+    const preserveItemFailures = files.length > 1;
+
+    const processFile = async (
+      file: Express.Multer.File,
+      expected: ExpectedLabel,
+    ): Promise<VerificationResult> => {
+      const startedAt = performance.now();
+      try {
+        const image = await validateLabelImage(file, {
+          maxPixels: options.maxImagePixels,
+        });
+        const extracted = await options.provider.extract(image);
+        const result = verifyLabel(expected, extracted, image.originalName, 0);
+        result.processingTimeMs = Math.round(performance.now() - startedAt);
+        return result;
+      } catch (error: unknown) {
+        if (preserveItemFailures && error instanceof AppError) {
+          return createUnprocessedLabelResult(
+            expected,
+            safeSourceName(file),
+            Math.round(performance.now() - startedAt),
+            error.message,
+          );
+        }
+        throw error;
+      }
+    };
+
+    const results: VerificationResult[] = [];
+    for (let index = 0; index < files.length; index += BATCH_CONCURRENCY) {
+      const chunk = files.slice(index, index + BATCH_CONCURRENCY);
+      const chunkResults = await Promise.all(
+        chunk.map((file, chunkIndex) => {
+          const expected = expectedLabels[index + chunkIndex];
+          if (!expected) {
+            throw new AppError(
+              "BATCH_LENGTH_MISMATCH",
+              "Each selected label must have one set of application values.",
+              400,
+            );
+          }
+          return processFile(file, expected);
+        }),
+      );
+      results.push(...chunkResults);
+    }
+
+    const csv = createVerificationCsv(results);
+    const filename = createReportFilename(
+      results.length === 1 ? results[0]?.applicationId : "batch",
+    );
+
+    const acceptHeader = request.get("Accept") ?? "";
+    const wantsJson =
+      acceptHeader.includes("application/json") &&
+      !acceptHeader.includes("text/csv");
+
+    if (wantsJson) {
+      response
+        .status(200)
+        .set("Cache-Control", "no-store")
+        .json({
+          ...(results.length === 1 ? { result: results[0] } : {}),
+          results,
+          report: {
+            filename,
+            content: csv,
+          },
+        });
+      return;
+    }
 
     response
       .status(200)
@@ -113,7 +247,14 @@ export function createApp(options: CreateAppOptions): Express {
       .send(csv);
   };
 
-  app.post("/api/verifications", upload.single("label"), handleVerification);
+  app.post(
+    "/api/verifications",
+    upload.fields([
+      { name: "label", maxCount: 1 },
+      { name: "labels", maxCount: MAX_BATCH_SIZE },
+    ]),
+    handleVerification,
+  );
 
   app.use((_request, response) => {
     response.status(404).json({
@@ -137,8 +278,8 @@ export function createApp(options: CreateAppOptions): Express {
         error: {
           code: tooLarge ? "FILE_TOO_LARGE" : "INVALID_UPLOAD",
           message: tooLarge
-            ? "The image is too large. Choose a smaller file and try again."
-            : "The upload could not be accepted. Submit one image and try again.",
+            ? "An image is too large. Choose a smaller file and try again."
+            : "The upload could not be accepted. Submit no more than 10 images and try again.",
         },
       });
       return;

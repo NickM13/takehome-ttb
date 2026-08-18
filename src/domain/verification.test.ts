@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { REQUIRED_GOVERNMENT_WARNING } from "./regulatory-rules.js";
 import type { ExpectedLabel } from "./types.js";
-import { verifyLabel } from "./verification.js";
+import { createUnprocessedLabelResult, verifyLabel } from "./verification.js";
 import { createMatchingExtraction } from "../../test/fixtures.js";
 
 const expected: ExpectedLabel = {
@@ -87,5 +87,20 @@ describe("verifyLabel", () => {
 
     expect(result.fields[0]?.status).toBe("needs_review");
     expect(result.overallStatus).toBe("needs_review");
+  });
+
+  it("preserves a failed batch item as needs review", () => {
+    const result = createUnprocessedLabelResult(
+      expected,
+      "failed.png",
+      75,
+      "Extraction failed for this label.",
+    );
+
+    expect(result.overallStatus).toBe("needs_review");
+    expect(result.fields).toHaveLength(5);
+    expect(result.fields.every(({ status }) => status === "needs_review")).toBe(
+      true,
+    );
   });
 });

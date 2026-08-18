@@ -1,0 +1,7 @@
+review_id,submitted_at,application_id,source_file,brand_name,class_type,alcohol_content,net_contents,overall_status,review_summary
+DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,HARBOR LIGHT,Distilled Gin,47% Alc./Vol. (94 Proof),750 mL,match,All configured fields match
+DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,MESA ROJA,Tequila Blanco,40% Alc./Vol. (80 Proof),750 mL,match,All configured fields match
+DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,NORTH FORK,Vodka,40% Alc./Vol. (80 Proof),1 L,mismatch,Government warning wording does not match
+DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,STONE BRIDGE,Kentucky Straight Bourbon Whiskey,50% Alc./Vol. (100 Proof),750 mL,mismatch,Observed alcohol content differs from the application
+DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,CASCADE PEAR,Pear Brandy,42% Alc./Vol. (84 Proof),750 mL,needs_review,Glare makes the net contents unreadable
+DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,OLD TOM RESERVE,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,mismatch,Observed net contents differ from the application

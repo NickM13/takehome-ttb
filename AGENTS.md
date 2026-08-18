@@ -28,9 +28,10 @@ A user should be able to:
 1. Provide expected application values.
 2. Upload label artwork in a common image format.
 3. Start verification with one clear action.
-4. Receive the completed result as a downloaded CSV.
-5. Use the CSV to see the overall status, field-by-field comparison, extracted evidence, and why each field matched, mismatched, or needs review.
-6. Correct the input or retry after a clear error without losing unrelated work.
+4. Review the overall status and field-by-field comparison on the page.
+5. See the entered value, AI-observed value, confidence, and why each field matched, mismatched, or needs review.
+6. Download the completed result as a CSV when desired.
+7. Correct the input or retry after a clear error without losing unrelated work.
 
 At minimum, support the example distilled-spirits fields in the README:
 
@@ -59,9 +60,10 @@ The README leaves some details open. Until the product owner says otherwise, use
 
 - Expected application fields may be entered manually or loaded from local fixture data; no external system integration is required.
 - Common raster image formats are sufficient for the first vertical slice. PDF support is optional.
-- One application maps to one logical label review, even if multiple label images are eventually supported.
+- One application-value record maps to one uploaded label image. A batch contains up to 10 such records in selection order.
 - Uploaded files, extracted text, and verification results are request-scoped and ephemeral.
-- Successful results are returned directly to the browser as a CSV download; no database or result-history view is required.
+- Six synthetic review summaries from `public/sample-reviews.csv` preload the backlog. Newly completed reviews are prepended in browser memory and disappear on refresh.
+- Successful results are shown in a request-scoped on-page comparison and can be downloaded as a CSV. The backlog is a demo/session view, not durable history; no database is required.
 - The demo may use synthetic labels and non-sensitive data.
 - The user remains the final decision-maker whenever the image is unreadable, extraction confidence is low, or a regulatory rule requires judgment.
 
@@ -103,11 +105,13 @@ Keep regulatory text and rules in versioned configuration or fixtures with a cit
 - Use plain language: `Matches`, `Does not match`, and `Needs review` are preferable to model or OCR jargon.
 - Put the primary upload/verify action in the natural reading order and make it visually obvious.
 - Show progress immediately and prevent accidental duplicate submissions.
+- Show the repository-backed demo backlog on initial load and add completed reviews to its top without triggering an automatic download.
+- Show a thumbnail, filename, and size for every selected image before verification.
 - Preserve partial field results in the CSV if one field check fails; do not replace the entire review with a generic error.
 - Pair status colors with text and icons so color is never the only signal.
 - Ensure keyboard access, visible focus, associated form labels, readable contrast, and useful screen-reader status announcements.
 - Explain how to fix upload problems, including unsupported format, oversized file, unreadable image, timeout, and provider failure.
-- For a batch, provide clear processing feedback and include per-item states plus summary data in the downloaded CSV. Since results are not stored, a retry may require resubmitting the failed item.
+- For a batch, let reviewers confirm expected values per image, provide clear processing feedback, and include per-item states plus summary data in the downloaded CSV. Since results are not stored, a retry may require resubmitting the failed item.
 
 Avoid chat-style interfaces unless they materially improve the review task. A structured checklist is easier to scan and audit.
 
@@ -138,11 +142,11 @@ Maintain clear boundaries between:
 
 Use a provider interface around any external OCR or multimodal model so it can be replaced or faked in tests. Provider output must be validated before use. Prefer structured output with a schema over parsing free-form prose.
 
-Keep verification stateless. A request should validate and preprocess its uploads, perform extraction and comparison, stream or buffer the completed CSV response, and then release temporary resources. Do not write generated reports into the repository or depend on local disk surviving between requests.
+Keep verification stateless. A request should validate and preprocess its uploads, perform extraction and comparison, return the structured result with a generated CSV export, and then release temporary resources. Do not write generated reports into the repository or depend on local disk surviving between requests.
 
 ### CSV contract
 
-Return a successful verification as `text/csv` with a safe `Content-Disposition: attachment` filename. Use a standards-compliant CSV serializer rather than assembling rows with string concatenation.
+Provide every successful verification as an on-page structured comparison with a downloadable CSV. Direct API clients may request `text/csv` with a safe `Content-Disposition: attachment` filename. Use a standards-compliant CSV serializer rather than assembling rows with string concatenation.
 
 Use one row per verification field. The initial schema should include:
 
@@ -170,7 +174,7 @@ Because the target environment may restrict outbound traffic:
 - Include deterministic fixtures or a mock/demo mode for local development and automated tests.
 - Do not silently fall back to fabricated AI results.
 
-Keep batch processing within a bounded request for the MVP and limit its size and concurrency. If a batch cannot complete reliably within hosting request limits, reduce the supported batch size or revisit the stateless download constraint with the product owner rather than quietly adding persistent jobs.
+Keep batch processing within one bounded request for the MVP. The current limit is 10 images and two concurrent extraction calls. If a batch cannot complete reliably within hosting request limits, reduce the supported batch size or revisit the stateless download constraint with the product owner rather than quietly adding persistent jobs.
 
 ## Performance
 
@@ -242,6 +246,7 @@ Use fixtures covering:
 - Poor lighting, skew, glare, or low resolution
 - Malformed provider output
 - Mixed success and failure in a batch, if batch support exists
+- Preview rendering and per-file application-value mapping for multiple selections
 
 Mock provider calls in unit and integration tests. Keep a small, explicitly marked live-provider smoke test optional so normal test runs remain deterministic, fast, and credential-free.
 
@@ -258,14 +263,14 @@ A feature is done when:
 - No secrets or sensitive upload data are logged or committed.
 - Setup or behavior changes are documented.
 - Any known limitation or unsupported regulatory check is stated plainly.
-- Successful responses download a valid CSV and request-scoped files are cleaned up.
+- Successful responses render a complete comparison, provide a valid CSV download, and clean up request-scoped files.
 
 Before handing off a deployment-ready build, run the repository's formatter, linter, type checker, tests, and production build, as applicable. Also perform one clean setup using only the documentation under `docs/`. The project owner is responsible for the actual deployment unless they explicitly delegate it.
 
 ## Suggested One-Week Delivery Order
 
 1. Establish the TypeScript/Express skeleton, schemas, fixtures, and provider boundary.
-2. Complete one end-to-end single-label flow that downloads a valid CSV.
+2. Complete one end-to-end single-label flow that renders comparisons and downloads a valid CSV.
 3. Add deterministic field rules, evidence, uncertainty, cleanup, and error states.
 4. Add automated coverage, accessibility fixes, and performance measurement.
 5. Add a small batch flow only if the single-label experience is stable.

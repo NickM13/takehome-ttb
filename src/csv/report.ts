@@ -20,19 +20,26 @@ export function escapeSpreadsheetFormula(value: string): string {
   return FORMULA_PREFIX.test(value) ? `'${value}` : value;
 }
 
-export function createVerificationCsv(result: VerificationResult): string {
-  const records = result.fields.map((field) => ({
-    application_id: escapeSpreadsheetFormula(result.applicationId ?? ""),
-    source_file: escapeSpreadsheetFormula(result.sourceFile),
-    overall_status: result.overallStatus,
-    field: field.field,
-    expected_value: escapeSpreadsheetFormula(field.expectedValue),
-    observed_value: escapeSpreadsheetFormula(field.observedValue),
-    field_status: field.status,
-    confidence: field.confidence.toFixed(2),
-    explanation: escapeSpreadsheetFormula(field.explanation),
-    processing_time_ms: result.processingTimeMs.toString(),
-  }));
+export function createVerificationCsv(
+  resultOrResults: VerificationResult | VerificationResult[],
+): string {
+  const results = Array.isArray(resultOrResults)
+    ? resultOrResults
+    : [resultOrResults];
+  const records = results.flatMap((result) =>
+    result.fields.map((field) => ({
+      application_id: escapeSpreadsheetFormula(result.applicationId ?? ""),
+      source_file: escapeSpreadsheetFormula(result.sourceFile),
+      overall_status: result.overallStatus,
+      field: field.field,
+      expected_value: escapeSpreadsheetFormula(field.expectedValue),
+      observed_value: escapeSpreadsheetFormula(field.observedValue),
+      field_status: field.status,
+      confidence: field.confidence.toFixed(2),
+      explanation: escapeSpreadsheetFormula(field.explanation),
+      processing_time_ms: result.processingTimeMs.toString(),
+    })),
+  );
 
   return stringify(records, {
     header: true,

@@ -47,4 +47,43 @@ describe("CSV reports", () => {
       "verification-COLA-123-csv.csv",
     );
   });
+
+  it("combines multiple label results into one batch report", () => {
+    const first: VerificationResult = {
+      sourceFile: "one.png",
+      overallStatus: "match",
+      processingTimeMs: 12,
+      fields: [
+        {
+          field: "brand_name",
+          expectedValue: "One",
+          observedValue: "One",
+          status: "match",
+          confidence: 1,
+          explanation: "Matches.",
+        },
+      ],
+    };
+    const second: VerificationResult = {
+      ...first,
+      sourceFile: "two.png",
+      overallStatus: "mismatch",
+      fields: [
+        {
+          field: "brand_name",
+          expectedValue: "One",
+          observedValue: "Two",
+          status: "mismatch",
+          confidence: 1,
+          explanation: "Does not match.",
+        },
+      ],
+    };
+
+    const csv = createVerificationCsv([first, second]);
+
+    expect(csv).toContain("one.png,match");
+    expect(csv).toContain("two.png,mismatch");
+    expect(csv.match(/application_id,source_file/g)).toHaveLength(1);
+  });
 });

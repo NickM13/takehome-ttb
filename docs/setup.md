@@ -15,6 +15,12 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+The review backlog loads six synthetic examples from
+`public/sample-reviews.csv` as soon as the page opens. Successful live reviews
+are prepended to that list in browser memory. Refreshing the page clears live
+entries and reloads the six examples; there is no server-side review history or
+database in this MVP.
+
 The checked-in configuration uses the deterministic `mock` extraction provider. The page displays this mode clearly. It exercises upload validation, verification, and CSV generation, but it does not inspect the uploaded image.
 
 To use live image extraction, set these values in `.env`:
@@ -39,7 +45,7 @@ npm run build
 
 ## API
 
-`POST /api/verifications` accepts `multipart/form-data` with one `label` image and these text fields:
+`POST /api/verifications` accepts `multipart/form-data`. A single verification may use the legacy `label` file field or the `labels` field and these text fields:
 
 - `applicationId` (optional)
 - `brandName`
@@ -47,6 +53,20 @@ npm run build
 - `alcoholContent`
 - `netContents`
 
-Successful requests return a CSV attachment. Invalid uploads and extraction failures return a structured JSON error with a non-2xx status.
+For a batch, attach 2–10 images as repeated `labels` fields and provide `applications` as a JSON array in the same order. Every array item uses the five fields above. The server processes at most two images concurrently and preserves failed items as `needs_review` rows instead of discarding successful results.
+
+Requests with `Accept: application/json` return the structured on-page result plus its request-scoped CSV export. The browser displays the review first and downloads that CSV only when the reviewer selects **Download CSV**. Requests with `Accept: text/csv` return the CSV as an attachment for direct API clients. Invalid uploads and extraction failures return a structured JSON error with a non-2xx status.
+
+`GET /sample-reviews.csv` returns the checked-in synthetic backlog fixture. It
+is demo data, not a durable review store or the field-by-field export produced
+by a live verification.
 
 `GET /api/status` returns service health and the active extraction mode. It does not expose credentials.
+
+## Live-provider troubleshooting
+
+- `EXTRACTION_PROVIDER` must be `openai`; changing `.env` requires a server restart.
+- `EXTRACTION_CREDITS_EXHAUSTED` means the key authenticated but its OpenAI organization or project has no available API credits. Add billing/credits before retrying.
+- `EXTRACTION_AUTH_FAILED` means the key or project access is invalid.
+- `EXTRACTION_RATE_LIMITED` is temporary; wait briefly before retrying.
+- A successful `/api/status` response confirms configuration selection, not that the account has credits. A real label verification is the end-to-end check.

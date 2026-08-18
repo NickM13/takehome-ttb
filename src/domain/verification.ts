@@ -337,3 +337,38 @@ export function verifyLabel(
     processingTimeMs,
   };
 }
+
+export function createUnprocessedLabelResult(
+  expected: ExpectedLabel,
+  sourceFile: string,
+  processingTimeMs: number,
+  explanation: string,
+): VerificationResult {
+  const unavailable = (
+    field: FieldVerification["field"],
+    expectedValue: string,
+  ): FieldVerification => ({
+    field,
+    expectedValue,
+    observedValue: "",
+    status: "needs_review",
+    confidence: 0,
+    explanation,
+  });
+
+  return {
+    ...(expected.applicationId
+      ? { applicationId: expected.applicationId }
+      : {}),
+    sourceFile,
+    overallStatus: "needs_review",
+    fields: [
+      unavailable("brand_name", expected.brandName),
+      unavailable("class_type", expected.classType),
+      unavailable("alcohol_content", expected.alcoholContent),
+      unavailable("net_contents", expected.netContents),
+      unavailable("government_warning", REQUIRED_GOVERNMENT_WARNING),
+    ],
+    processingTimeMs,
+  };
+}

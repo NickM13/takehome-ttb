@@ -17,6 +17,60 @@ export interface OpenAIExtractionProviderOptions {
   timeoutMs: number;
 }
 
+export function mapOpenAIApiError(
+  status: number,
+  code?: string | null,
+): AppError {
+  if (status === 401 || status === 403) {
+    return new AppError(
+      "EXTRACTION_AUTH_FAILED",
+      "The extraction service could not authenticate. Check the configured OpenAI API key and project access.",
+      502,
+    );
+  }
+
+  if (
+    status === 429 &&
+    (code === "credit_balance_exhausted" || code === "insufficient_quota")
+  ) {
+    return new AppError(
+      "EXTRACTION_CREDITS_EXHAUSTED",
+      "The OpenAI account has no available API credits. Add credits or billing, then try again.",
+      503,
+    );
+  }
+
+  if (status === 429) {
+    return new AppError(
+      "EXTRACTION_RATE_LIMITED",
+      "The extraction service is temporarily rate-limited. Wait briefly, then try again.",
+      503,
+    );
+  }
+
+  if (status === 400 && code === "invalid_value") {
+    return new AppError(
+      "EXTRACTION_INVALID_IMAGE",
+      "The extraction service could not read this image. Export it as a new JPEG or PNG and try again.",
+      422,
+    );
+  }
+
+  if (status >= 500) {
+    return new AppError(
+      "EXTRACTION_UNAVAILABLE",
+      "The extraction service is temporarily unavailable. Please try again.",
+      502,
+    );
+  }
+
+  return new AppError(
+    "EXTRACTION_FAILED",
+    "The label could not be processed by the extraction provider. Please try again.",
+    502,
+  );
+}
+
 export class OpenAIExtractionProvider implements ExtractionProvider {
   readonly name: string;
   readonly isFixture = false;
@@ -78,6 +132,20 @@ export class OpenAIExtractionProvider implements ExtractionProvider {
           "Label extraction took too long. Please retry with a smaller or clearer image.",
           504,
         );
+      }
+
+      if (error instanceof OpenAI.APIConnectionError) {
+        throw new AppError(
+          "EXTRACTION_CONNECTION_FAILED",
+          "The extraction service could not be reached. Check the network connection and try again.",
+          502,
+        );
+      }
+
+      if (error instanceof OpenAI.APIError) {
+        const status = typeof error.status === "number" ? error.status : 500;
+        const code = typeof error.code === "string" ? error.code : null;
+        throw mapOpenAIApiError(status, code);
       }
 
       throw new AppError(

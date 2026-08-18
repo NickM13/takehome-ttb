@@ -31,19 +31,68 @@
           <h2 id="intro-title">Check the routine fields in one clear step.</h2>
           <p class="lede">
             Enter the values from the application, attach the label artwork, and
-            download a field-by-field CSV report. You remain the final reviewer.
+            review each comparison before downloading a CSV report. You remain
+            the final reviewer.
           </p>
         </div>
         <ol class="process" aria-label="Verification process">
           <li><span>1</span>Enter application data</li>
           <li><span>2</span>Attach one label image</li>
-          <li><span>3</span>Download the report</li>
+          <li><span>3</span>Review and export results</li>
         </ol>
       </section>
 
       <div id="provider-notice" class="notice" role="status" aria-live="polite">
         Checking extraction service…
       </div>
+
+      <section class="card backlog" aria-labelledby="backlog-title">
+        <div class="backlog-heading">
+          <div>
+            <p class="step-label">Current queue</p>
+            <h2 id="backlog-title">Review backlog</h2>
+            <p>
+              Six demo reviews are preloaded. Reviews completed in this browser
+              are added to the top of the queue.
+            </p>
+          </div>
+          <div class="backlog-heading-meta">
+            <span id="backlog-count" class="backlog-count">Loading…</span>
+            <a href="/sample-reviews.csv" download>Download sample CSV</a>
+          </div>
+        </div>
+
+        <p
+          id="backlog-message"
+          class="backlog-message"
+          role="status"
+          aria-live="polite"
+        >
+          Loading sample reviews…
+        </p>
+
+        <div class="backlog-table-wrap">
+          <table class="backlog-table">
+            <caption class="visually-hidden">
+              Reviews waiting in the current demonstration backlog
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Application</th>
+                <th scope="col">Label</th>
+                <th scope="col">Brand</th>
+                <th scope="col">Received</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody id="backlog-body"></tbody>
+          </table>
+        </div>
+        <p class="backlog-retention">
+          Demo rows reload from the repository. New reviews remain only for this
+          browser session and are not stored on the server.
+        </p>
+      </section>
 
       <section class="card" aria-labelledby="form-title">
         <div class="card-heading">
@@ -57,6 +106,10 @@
         <form id="verification-form" enctype="multipart/form-data" novalidate>
           <fieldset>
             <legend>Expected values from the application</legend>
+            <p class="fieldset-intro">
+              For a batch, these values are copied to every selected label. You
+              can then edit each label's application details before verifying.
+            </p>
             <div class="field-grid">
               <div class="field field-wide">
                 <label for="applicationId"
@@ -130,19 +183,42 @@
             <label class="upload" for="label">
               <span class="upload-icon" aria-hidden="true">↑</span>
               <span class="upload-copy">
-                <strong>Choose a label image</strong>
-                <span id="file-name">JPEG, PNG, or WebP · 10 MB maximum</span>
+                <strong>Choose one or more label images</strong>
+                <span id="file-name"
+                  >Up to 10 JPEG, PNG, or WebP images · 10 MB each</span
+                >
               </span>
               <span class="upload-button" aria-hidden="true">Browse files</span>
             </label>
             <input
               class="visually-hidden"
               id="label"
-              name="label"
+              name="labels"
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              multiple
               required
             />
+
+            <div id="preview-region" class="preview-region" hidden>
+              <div class="preview-heading">
+                <h3>Selected label preview</h3>
+                <p id="selection-count"></p>
+              </div>
+              <div id="preview-grid" class="preview-grid"></div>
+            </div>
+          </fieldset>
+
+          <fieldset id="batch-fieldset" hidden>
+            <legend>Application details by label</legend>
+            <p class="fieldset-intro">
+              Confirm the expected values for each image. Open a label to edit
+              values that differ from the defaults above.
+            </p>
+            <div
+              id="batch-application-list"
+              class="batch-application-list"
+            ></div>
           </fieldset>
 
           <div
@@ -158,11 +234,73 @@
               only.
             </p>
             <button id="submit-button" type="submit">
-              <span class="button-label">Verify and download CSV</span>
+              <span class="button-label">Verify label</span>
               <span class="spinner" aria-hidden="true"></span>
             </button>
           </div>
         </form>
+      </section>
+
+      <section
+        id="results-section"
+        class="card results"
+        aria-labelledby="results-title"
+        hidden
+      >
+        <div class="results-heading">
+          <div>
+            <p class="step-label">Verification complete</p>
+            <h2 id="results-title" tabindex="-1">Label comparison</h2>
+          </div>
+          <span id="overall-status" class="status-badge"></span>
+        </div>
+
+        <div class="results-summary">
+          <p id="results-summary-text"></p>
+          <dl>
+            <div>
+              <dt>Source file</dt>
+              <dd id="result-source-file"></dd>
+            </div>
+            <div>
+              <dt>Processing time</dt>
+              <dd id="result-processing-time"></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="results-table-wrap">
+          <table class="results-table">
+            <caption class="visually-hidden">
+              Entered application values compared with AI-observed label values
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Field</th>
+                <th scope="col">Entered value</th>
+                <th scope="col">AI-observed value</th>
+                <th scope="col">Comparison</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </div>
+
+        <div class="results-actions">
+          <p>
+            Save the CSV if this review needs to be retained outside the app.
+          </p>
+          <div>
+            <button
+              id="review-another-button"
+              class="secondary-button"
+              type="button"
+            >
+              Review another label
+            </button>
+            <button id="download-button" type="button">Download CSV</button>
+          </div>
+        </div>
       </section>
 
       <aside class="review-note" aria-labelledby="review-note-title">
