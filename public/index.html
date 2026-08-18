@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="AI-assisted comparison of alcohol label artwork and application fields."
+    />
+    <title>TTB Label Verification</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#verification-form">Skip to verification form</a>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="agency-mark" aria-hidden="true">TTB</div>
+        <div>
+          <p class="eyebrow">Compliance Division prototype</p>
+          <h1>Alcohol Label Verification</h1>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="intro-title">
+        <div>
+          <p class="eyebrow">Application-to-label review</p>
+          <h2 id="intro-title">Check the routine fields in one clear step.</h2>
+          <p class="lede">
+            Enter the values from the application, attach the label artwork, and
+            download a field-by-field CSV report. You remain the final reviewer.
+          </p>
+        </div>
+        <ol class="process" aria-label="Verification process">
+          <li><span>1</span>Enter application data</li>
+          <li><span>2</span>Attach one label image</li>
+          <li><span>3</span>Download the report</li>
+        </ol>
+      </section>
+
+      <div id="provider-notice" class="notice" role="status" aria-live="polite">
+        Checking extraction service…
+      </div>
+
+      <section class="card" aria-labelledby="form-title">
+        <div class="card-heading">
+          <div>
+            <p class="step-label">Single-label review</p>
+            <h2 id="form-title">Application details</h2>
+          </div>
+          <p><span aria-hidden="true">*</span> Required fields</p>
+        </div>
+
+        <form id="verification-form" enctype="multipart/form-data" novalidate>
+          <fieldset>
+            <legend>Expected values from the application</legend>
+            <div class="field-grid">
+              <div class="field field-wide">
+                <label for="applicationId"
+                  >Application ID <span>Optional</span></label
+                >
+                <input
+                  id="applicationId"
+                  name="applicationId"
+                  type="text"
+                  maxlength="80"
+                  autocomplete="off"
+                  placeholder="e.g., COLA-2026-00125"
+                />
+                <p class="hint">
+                  Used only to name and correlate the CSV report.
+                </p>
+              </div>
+
+              <div class="field">
+                <label for="brandName">Brand name *</label>
+                <input
+                  id="brandName"
+                  name="brandName"
+                  type="text"
+                  maxlength="200"
+                  value="OLD TOM DISTILLERY"
+                  required
+                />
+              </div>
+
+              <div class="field">
+                <label for="classType">Class or type *</label>
+                <input
+                  id="classType"
+                  name="classType"
+                  type="text"
+                  maxlength="300"
+                  value="Kentucky Straight Bourbon Whiskey"
+                  required
+                />
+              </div>
+
+              <div class="field">
+                <label for="alcoholContent">Alcohol content *</label>
+                <input
+                  id="alcoholContent"
+                  name="alcoholContent"
+                  type="text"
+                  maxlength="100"
+                  value="45% Alc./Vol. (90 Proof)"
+                  required
+                />
+              </div>
+
+              <div class="field">
+                <label for="netContents">Net contents *</label>
+                <input
+                  id="netContents"
+                  name="netContents"
+                  type="text"
+                  maxlength="100"
+                  value="750 mL"
+                  required
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Label artwork</legend>
+            <label class="upload" for="label">
+              <span class="upload-icon" aria-hidden="true">↑</span>
+              <span class="upload-copy">
+                <strong>Choose a label image</strong>
+                <span id="file-name">JPEG, PNG, or WebP · 10 MB maximum</span>
+              </span>
+              <span class="upload-button" aria-hidden="true">Browse files</span>
+            </label>
+            <input
+              class="visually-hidden"
+              id="label"
+              name="label"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              required
+            />
+          </fieldset>
+
+          <div
+            id="form-message"
+            class="form-message"
+            role="alert"
+            aria-live="assertive"
+          ></div>
+
+          <div class="form-actions">
+            <p>
+              Uploaded images and report data are processed for this request
+              only.
+            </p>
+            <button id="submit-button" type="submit">
+              <span class="button-label">Verify and download CSV</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="review-note" aria-labelledby="review-note-title">
+        <div class="review-icon" aria-hidden="true">i</div>
+        <div>
+          <h2 id="review-note-title">
+            Built for review, not automatic approval
+          </h2>
+          <p>
+            The report distinguishes matches, mismatches, and fields that need
+            human review. Confirm the source artwork before making a compliance
+            decision.
+          </p>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <p>Prototype decision-support tool · Not connected to COLA</p>
+    </footer>
+  </body>
+</html>
