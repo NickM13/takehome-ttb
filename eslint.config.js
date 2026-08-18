@@ -6,6 +6,7 @@ export default tseslint.config(
     ignores: [
       "dist/",
       "coverage/",
+      ".wrangler/",
       "node_modules/",
       "public/",
       "eslint.config.js",

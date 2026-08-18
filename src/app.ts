@@ -97,6 +97,7 @@ export interface CreateAppOptions {
   provider: ExtractionProvider;
   maxFileSizeBytes: number;
   maxImagePixels: number;
+  serveStaticAssets?: boolean;
 }
 
 export function createApp(options: CreateAppOptions): Express {
@@ -115,13 +116,15 @@ export function createApp(options: CreateAppOptions): Express {
     next();
   });
 
-  app.use(
-    express.static(fileURLToPath(new URL("../public", import.meta.url)), {
-      index: "index.html",
-      etag: true,
-      maxAge: "1h",
-    }),
-  );
+  if (options.serveStaticAssets !== false) {
+    app.use(
+      express.static(fileURLToPath(new URL("../public", import.meta.url)), {
+        index: "index.html",
+        etag: true,
+        maxAge: "1h",
+      }),
+    );
+  }
 
   app.get("/api/status", (_request, response) => {
     response.set("Cache-Control", "no-store").json({
