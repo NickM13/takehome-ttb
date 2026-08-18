@@ -15,11 +15,26 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-The review backlog loads six synthetic examples from
-`public/sample-reviews.csv` as soon as the page opens. Successful live reviews
-are prepended to that list in browser memory. Refreshing the page clears live
-entries and reloads the six examples; there is no server-side review history or
-database in this MVP.
+The review backlog loads six complete synthetic examples from
+`public/sample-reviews.csv` as soon as the page opens. Select **Open review** on
+any row to inspect its seven field comparisons. Successful live reviews are
+prepended to that list in browser memory. Refreshing the page clears live
+entries, reviewer decisions, and reviewer notes, then reloads the six examples;
+there is no server-side review history or database in this MVP.
+
+Every field accepts a reviewer note. An AI result of `needs_review` also accepts
+an independent reviewer disposition of `approved` or `rejected`. The AI status
+is retained unchanged for auditability. Every complete review also has a final
+human decision of `approved` or `rejected`; this separate decision is shown in
+the backlog as soon as it is selected. **Download CSV** creates an annotated
+export with `review_decision`, field-level `reviewer_decision`, and
+`reviewer_note` columns from the review that is currently open.
+
+The **Label artwork** section also offers three official TTB sample labels. A
+selection loads the artwork into the same preview used for uploaded files and
+fills the corresponding expected application values. Reviewers can still edit
+those values before verification or use the upload control for their own single
+or batch images. Source details are recorded in `docs/sample-labels.md`.
 
 The checked-in configuration uses the deterministic `mock` extraction provider. The page displays this mode clearly. It exercises upload validation, verification, and CSV generation, but it does not inspect the uploaded image.
 
@@ -52,14 +67,18 @@ npm run build
 - `classType`
 - `alcoholContent`
 - `netContents`
+- `bottlerNameAddress`
+- `countryOfOrigin` (optional; imports only)
 
-For a batch, attach 2–10 images as repeated `labels` fields and provide `applications` as a JSON array in the same order. Every array item uses the five fields above. The server processes at most two images concurrently and preserves failed items as `needs_review` rows instead of discarding successful results.
+The government health warning is not a caller-entered field because its required wording is configured centrally. It is extracted and checked automatically for every label.
+
+For a batch, attach 2–10 images as repeated `labels` fields and provide `applications` as a JSON array in the same order. Every array item uses the application fields above. The server processes at most two images concurrently and preserves failed items as `needs_review` rows instead of discarding successful results.
 
 Requests with `Accept: application/json` return the structured on-page result plus its request-scoped CSV export. The browser displays the review first and downloads that CSV only when the reviewer selects **Download CSV**. Requests with `Accept: text/csv` return the CSV as an attachment for direct API clients. Invalid uploads and extraction failures return a structured JSON error with a non-2xx status.
 
-`GET /sample-reviews.csv` returns the checked-in synthetic backlog fixture. It
-is demo data, not a durable review store or the field-by-field export produced
-by a live verification.
+`GET /sample-reviews.csv` returns the checked-in field-level synthetic backlog
+fixture. It is demo data, not a durable review store. Reviewer annotations are
+not written back to this fixture.
 
 `GET /api/status` returns service health and the active extraction mode. It does not expose credentials.
 

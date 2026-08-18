@@ -1,5 +1,6 @@
 const form = document.querySelector("#verification-form");
 const fileInput = document.querySelector("#label");
+const sampleSelect = document.querySelector("#sample-label");
 const fileName = document.querySelector("#file-name");
 const message = document.querySelector("#form-message");
 const submitButton = document.querySelector("#submit-button");
@@ -17,6 +18,8 @@ const resultsSection = document.querySelector("#results-section");
 const resultsTitle = document.querySelector("#results-title");
 const overallStatus = document.querySelector("#overall-status");
 const resultsSummaryText = document.querySelector("#results-summary-text");
+const reviewerSummary = document.querySelector("#reviewer-summary");
+const reviewDecisionList = document.querySelector("#review-decision-list");
 const resultSourceFile = document.querySelector("#result-source-file");
 const resultProcessingTime = document.querySelector("#result-processing-time");
 const resultsBody = document.querySelector("#results-body");
@@ -29,12 +32,61 @@ const fieldLabels = {
   class_type: "Class or type",
   alcohol_content: "Alcohol content",
   net_contents: "Net contents",
+  bottler_name_address: "Bottler or producer name and address",
+  country_of_origin: "Country of origin",
   government_warning: "Government warning",
 };
 const statusLabels = {
   match: "Matches",
   mismatch: "Does not match",
   needs_review: "Needs review",
+};
+const sampleLabels = {
+  "captain-johns": {
+    name: "Captain John's Spiced Rum",
+    path: "/sample-labels/captain-johns-spiced-rum.png",
+    filename: "captain-johns-spiced-rum.png",
+    application: {
+      applicationId: "TTB-SAMPLE-DS-001",
+      brandName: "CAPTAIN JOHN'S",
+      classType: "Rum with natural flavors added",
+      alcoholContent: "20% Alcohol By Volume (40 Proof)",
+      netContents: "750 mL",
+      bottlerNameAddress:
+        "DISTILLED & BOTTLED BY: ABC DISTILLERY FREDERICK, MD",
+      countryOfOrigin: "",
+    },
+  },
+  lighthouse: {
+    name: "Lighthouse Stormchaser Chardonnay",
+    path: "/sample-labels/lighthouse-chardonnay.png",
+    filename: "lighthouse-chardonnay.png",
+    application: {
+      applicationId: "TTB-SAMPLE-WINE-001",
+      brandName: "LIGHTHOUSE",
+      classType: "Chardonnay",
+      alcoholContent: "13.5% by vol.",
+      netContents: "750 mL",
+      bottlerNameAddress:
+        "PRODUCED AND BOTTLED BY LIGHTHOUSE VINTNERS KINGSTON, NY",
+      countryOfOrigin: "",
+    },
+  },
+  "malt-and-hop": {
+    name: "Malt & Hop Honey Huckleberry Pie Ale",
+    path: "/sample-labels/malt-and-hop-ale.png",
+    filename: "malt-and-hop-ale.png",
+    application: {
+      applicationId: "TTB-SAMPLE-BEER-001",
+      brandName: "MALT & HOP",
+      classType: "Ale with honey and huckleberry flavor",
+      alcoholContent: "5% Alc./Vol.",
+      netContents: "1 pint 0.9 fl. oz.",
+      bottlerNameAddress:
+        "BREWED & BOTTLED BY MALT & HOP BREWERY HYATTSVILLE, MD",
+      countryOfOrigin: "",
+    },
+  },
 };
 const batchFieldDefinitions = [
   {
@@ -73,11 +125,28 @@ const batchFieldDefinitions = [
     maxLength: 100,
     required: true,
   },
+  {
+    key: "bottlerNameAddress",
+    label: "Bottler or producer name and address",
+    sourceId: "bottlerNameAddress",
+    maxLength: 400,
+    required: true,
+    wide: true,
+  },
+  {
+    key: "countryOfOrigin",
+    label: "Country of origin (imports only)",
+    sourceId: "countryOfOrigin",
+    maxLength: 100,
+    required: false,
+    wide: true,
+  },
 ];
 
-let latestReport = null;
+let activeReview = null;
 let previewUrls = [];
 let backlogReviews = [];
+let selectedSampleFile = null;
 
 function setMessage(text, type = "") {
   message.textContent = text;
@@ -167,6 +236,36 @@ function appendBacklogCell(row, label, value) {
   return cell;
 }
 
+function annotationKey(result, field) {
+  return `${result.applicationId ?? ""}\u001f${result.sourceFile}\u001f${field.field}`;
+}
+
+function reviewKey(result) {
+  return `${result.applicationId ?? ""}\u001f${result.sourceFile}`;
+}
+
+function reviewDecisionStatus(result, reviewDecisions) {
+  const decision = reviewDecisions[reviewKey(result)] ?? "";
+  if (decision === "rejected") {
+    return { label: "Rejected", className: "status-mismatch" };
+  }
+  if (decision === "approved") {
+    return { label: "Approved", className: "status-match" };
+  }
+  return {
+    label: "Pending",
+    className: "status-needs-review",
+  };
+}
+
+function safeReportFilename(applicationId) {
+  const safeId = String(applicationId || "review")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return `verification-${safeId || "review"}.csv`;
+}
+
 function renderBacklog() {
   backlogBody.replaceChildren();
   backlogCount.textContent = `${backlogReviews.length} review${backlogReviews.length === 1 ? "" : "s"}`;
@@ -179,7 +278,6 @@ function renderBacklog() {
       "Application",
       review.applicationId || "Not provided",
     );
-    appendBacklogCell(row, "Label", review.sourceFile);
     appendBacklogCell(row, "Brand", review.brandName || "Not detected");
     appendBacklogCell(
       row,
@@ -191,6 +289,24 @@ function renderBacklog() {
     status.className = `field-status ${statusClass(review.overallStatus)}`;
     status.textContent = statusLabels[review.overallStatus];
     statusCell.append(status);
+
+    const progress = reviewDecisionStatus(
+      review.result,
+      review.reviewDecisions,
+    );
+    const reviewerCell = appendBacklogCell(row, "Reviewer decision", "");
+    const reviewerStatus = document.createElement("span");
+    reviewerStatus.className = `field-status ${progress.className}`;
+    reviewerStatus.textContent = progress.label;
+    reviewerCell.append(reviewerStatus);
+
+    const actionCell = appendBacklogCell(row, "Action", "");
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.className = "secondary-button backlog-open-button";
+    openButton.dataset.reviewId = review.reviewId;
+    openButton.textContent = "Open review";
+    actionCell.append(openButton);
     backlogBody.append(row);
   }
 }
@@ -202,26 +318,61 @@ async function loadSampleBacklog() {
     });
     if (!response.ok) throw new Error("Sample backlog request failed");
 
-    const samples = parseCsv(await response.text())
-      .filter(
-        (record) =>
-          record.review_id &&
-          record.source_file &&
-          Object.hasOwn(statusLabels, record.overall_status),
-      )
-      .map((record) => ({
-        reviewId: record.review_id,
-        submittedAt: record.submitted_at,
-        applicationId: record.application_id,
-        sourceFile: record.source_file,
-        brandName: record.brand_name,
-        overallStatus: record.overall_status,
-        summary: record.review_summary,
-        isDemo: true,
-      }));
+    const records = parseCsv(await response.text()).filter(
+      (record) =>
+        record.review_id &&
+        record.source_file &&
+        Object.hasOwn(statusLabels, record.overall_status) &&
+        Object.hasOwn(fieldLabels, record.field) &&
+        Object.hasOwn(statusLabels, record.field_status),
+    );
+    const groupedRecords = new Map();
+    for (const record of records) {
+      const existing = groupedRecords.get(record.review_id) ?? [];
+      existing.push(record);
+      groupedRecords.set(record.review_id, existing);
+    }
 
-    if (samples.length !== 6) {
-      throw new Error("The sample backlog must contain six reviews");
+    const samples = Array.from(groupedRecords.entries()).map(
+      ([reviewId, fieldRecords]) => {
+        const first = fieldRecords[0];
+        const result = {
+          applicationId: first.application_id,
+          sourceFile: first.source_file,
+          overallStatus: first.overall_status,
+          processingTimeMs: Number(first.processing_time_ms) || 0,
+          fields: fieldRecords.map((record) => ({
+            field: record.field,
+            expectedValue: record.expected_value,
+            observedValue: record.observed_value,
+            status: record.field_status,
+            confidence: Number(record.confidence) || 0,
+            explanation: record.explanation,
+          })),
+        };
+        const brand = result.fields.find(({ field }) => field === "brand_name");
+        return {
+          reviewId,
+          submittedAt: first.submitted_at,
+          applicationId: result.applicationId,
+          sourceFile: result.sourceFile,
+          brandName: brand?.observedValue || brand?.expectedValue || "",
+          overallStatus: result.overallStatus,
+          summary: summarizeResults([result]),
+          result,
+          filename: safeReportFilename(result.applicationId),
+          annotations: {},
+          reviewDecisions: {},
+          isDemo: true,
+        };
+      },
+    );
+
+    if (
+      samples.length !== 6 ||
+      samples.some(({ result }) => result.fields.length !== 7)
+    ) {
+      throw new Error("The sample backlog must contain six complete reviews");
     }
     backlogReviews = [
       ...backlogReviews.filter(({ isDemo }) => !isDemo),
@@ -237,18 +388,22 @@ async function loadSampleBacklog() {
   }
 }
 
-function addResultsToBacklog(results) {
+function addResultsToBacklog(results, annotations, reviewDecisions) {
   const submittedAt = new Date().toISOString();
   const completedReviews = results.map((result, index) => {
     const brand = result.fields.find(({ field }) => field === "brand_name");
     return {
-      reviewId: result.applicationId || `SESSION-${Date.now()}-${index + 1}`,
+      reviewId: `SESSION-${Date.now()}-${index + 1}`,
       submittedAt,
       applicationId: result.applicationId ?? "",
       sourceFile: result.sourceFile,
       brandName: brand?.observedValue || brand?.expectedValue || "",
       overallStatus: result.overallStatus,
       summary: summarizeResults([result]),
+      result,
+      filename: safeReportFilename(result.applicationId),
+      annotations,
+      reviewDecisions,
       isDemo: false,
     };
   });
@@ -261,6 +416,7 @@ function addResultsToBacklog(results) {
 }
 
 function selectedFiles() {
+  if (selectedSampleFile) return [selectedSampleFile];
   return Array.from(fileInput.files ?? []);
 }
 
@@ -271,12 +427,65 @@ function releasePreviewUrls() {
 
 function clearSelection() {
   releasePreviewUrls();
+  selectedSampleFile = null;
   fileInput.value = "";
+  sampleSelect.value = "";
   previewGrid.replaceChildren();
   batchApplicationList.replaceChildren();
   previewRegion.hidden = true;
   batchFieldset.hidden = true;
   fileName.textContent = "Up to 10 JPEG, PNG, or WebP images · 10 MB each";
+}
+
+function fillSampleApplication(application) {
+  for (const [field, value] of Object.entries(application)) {
+    document.querySelector(`#${field}`).value = value;
+  }
+}
+
+async function selectSampleLabel() {
+  const sampleId = sampleSelect.value;
+  if (!sampleId) {
+    clearSelection();
+    setMessage("");
+    return;
+  }
+
+  const sample = sampleLabels[sampleId];
+  if (!sample) return;
+
+  clearSelection();
+  sampleSelect.value = sampleId;
+  sampleSelect.disabled = true;
+  fileName.textContent = `Loading ${sample.name}…`;
+  setMessage("");
+
+  try {
+    const response = await fetch(sample.path);
+    if (!response.ok) throw new Error("Sample label request failed");
+    const image = await response.blob();
+    if (image.type !== "image/png") {
+      throw new Error("Sample label was not a PNG image");
+    }
+
+    selectedSampleFile = new File([image], sample.filename, {
+      type: image.type,
+    });
+    fillSampleApplication(sample.application);
+    renderSelectedPreviews();
+    setMessage(
+      `${sample.name} is ready. Confirm the expected values, then verify the label.`,
+      "success",
+    );
+  } catch {
+    clearSelection();
+    setMessage(
+      "The sample label could not be loaded. Choose another sample or upload an image.",
+      "error",
+    );
+  } finally {
+    sampleSelect.disabled = false;
+  }
 }
 
 function createBatchField(definition, index) {
@@ -434,7 +643,7 @@ function appendResultGroup(result, index) {
   const row = document.createElement("tr");
   row.className = "result-group";
   const cell = document.createElement("th");
-  cell.colSpan = 4;
+  cell.colSpan = 5;
   cell.scope = "rowgroup";
 
   const name = document.createElement("strong");
@@ -452,7 +661,131 @@ function appendResultGroup(result, index) {
   resultsBody.append(row);
 }
 
-function renderResults(payload) {
+function updateReviewerSummary(results, annotations) {
+  const needsReviewFields = results.flatMap((result) =>
+    result.fields
+      .filter(({ status }) => status === "needs_review")
+      .map((field) => ({ result, field })),
+  );
+
+  if (needsReviewFields.length === 0) {
+    reviewerSummary.textContent =
+      "No field-level disposition is required. Notes may still be added to any field.";
+    return;
+  }
+
+  const decisions = needsReviewFields.map(
+    ({ result, field }) =>
+      annotations[annotationKey(result, field)]?.decision ?? "",
+  );
+  const decided = decisions.filter(Boolean).length;
+  if (decisions.includes("rejected")) {
+    reviewerSummary.textContent = `${decided} of ${decisions.length} needs-review fields decided. At least one field was rejected.`;
+  } else if (decisions.every((decision) => decision === "approved")) {
+    reviewerSummary.textContent =
+      "All needs-review fields were approved by the reviewer.";
+  } else {
+    reviewerSummary.textContent = `${decided} of ${decisions.length} needs-review fields have a reviewer decision.`;
+  }
+}
+
+function renderReviewDecisions(results, reviewDecisions) {
+  reviewDecisionList.replaceChildren();
+
+  results.forEach((result, index) => {
+    const item = document.createElement("div");
+    item.className = "review-decision-item";
+
+    const decisionId = `review-decision-${index}`;
+    const label = document.createElement("label");
+    label.htmlFor = decisionId;
+    label.textContent =
+      results.length === 1
+        ? result.applicationId || "This review"
+        : result.applicationId || `Label ${index + 1}: ${result.sourceFile}`;
+
+    const select = document.createElement("select");
+    select.id = decisionId;
+    const currentDecision = reviewDecisions[reviewKey(result)] ?? "";
+    for (const [value, optionLabel] of [
+      ["", "Pending review"],
+      ["approved", "Approved"],
+      ["rejected", "Rejected"],
+    ]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = optionLabel;
+      option.selected = currentDecision === value;
+      select.append(option);
+    }
+    select.addEventListener("change", () => {
+      reviewDecisions[reviewKey(result)] = select.value;
+      renderBacklog();
+    });
+
+    item.append(label, select);
+    reviewDecisionList.append(item);
+  });
+}
+
+function appendReviewerControls(cell, result, field, annotations, rowIndex) {
+  const key = annotationKey(result, field);
+  const annotation = annotations[key] ?? { decision: "", note: "" };
+  annotations[key] = annotation;
+
+  const controls = document.createElement("div");
+  controls.className = "reviewer-controls";
+
+  if (field.status === "needs_review") {
+    const decisionId = `reviewer-decision-${rowIndex}`;
+    const decisionLabel = document.createElement("label");
+    decisionLabel.htmlFor = decisionId;
+    decisionLabel.textContent = "Decision";
+    const decision = document.createElement("select");
+    decision.id = decisionId;
+    for (const [value, label] of [
+      ["", "Select a decision"],
+      ["approved", "Approve"],
+      ["rejected", "Reject"],
+    ]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      option.selected = annotation.decision === value;
+      decision.append(option);
+    }
+    decision.addEventListener("change", () => {
+      annotation.decision = decision.value;
+      updateReviewerSummary(activeReview.results, annotations);
+      renderBacklog();
+    });
+    controls.append(decisionLabel, decision);
+  } else {
+    const automaticDecision = document.createElement("p");
+    automaticDecision.className = "reviewer-decision-unavailable";
+    automaticDecision.textContent =
+      "Decision available when AI status is Needs review.";
+    controls.append(automaticDecision);
+  }
+
+  const noteId = `reviewer-note-${rowIndex}`;
+  const noteLabel = document.createElement("label");
+  noteLabel.htmlFor = noteId;
+  noteLabel.textContent = "Reviewer note";
+  const note = document.createElement("textarea");
+  note.id = noteId;
+  note.rows = 3;
+  note.maxLength = 1000;
+  note.value = annotation.note;
+  note.placeholder = "Add context for this field";
+  note.addEventListener("input", () => {
+    annotation.note = note.value;
+  });
+  controls.append(noteLabel, note);
+  cell.append(controls);
+}
+
+function renderResults(payload, options = {}) {
   const results = Array.isArray(payload?.results)
     ? payload.results
     : payload?.result
@@ -461,15 +794,21 @@ function renderResults(payload) {
   if (
     results.length === 0 ||
     results.some((result) => !Array.isArray(result.fields)) ||
-    typeof payload.report?.filename !== "string" ||
-    typeof payload.report?.content !== "string"
+    typeof payload.report?.filename !== "string"
   ) {
     throw new Error(
       "The verification returned an incomplete result. Please retry.",
     );
   }
 
-  latestReport = payload.report;
+  const annotations = options.annotations ?? {};
+  const reviewDecisions = options.reviewDecisions ?? {};
+  activeReview = {
+    results,
+    filename: payload.report.filename,
+    annotations,
+    reviewDecisions,
+  };
   resultsBody.replaceChildren();
 
   const aggregateStatus = aggregateResultStatus(results);
@@ -478,6 +817,8 @@ function renderResults(payload) {
   resultsTitle.textContent =
     results.length === 1 ? "Label comparison" : "Batch comparison";
   resultsSummaryText.textContent = summarizeResults(results);
+  updateReviewerSummary(results, annotations);
+  renderReviewDecisions(results, reviewDecisions);
   resultSourceFile.textContent =
     results.length === 1 ? results[0].sourceFile : `${results.length} labels`;
   const totalProcessingTime = results.reduce(
@@ -486,6 +827,7 @@ function renderResults(payload) {
   );
   resultProcessingTime.textContent = `${totalProcessingTime.toLocaleString()} ms total`;
 
+  let rowIndex = 0;
   results.forEach((result, resultIndex) => {
     if (results.length > 1) appendResultGroup(result, resultIndex);
 
@@ -520,14 +862,80 @@ function renderResults(payload) {
       explanation.textContent = field.explanation;
       comparisonCell.append(comparison, explanation);
 
+      const reviewerCell = createResultCell(row, "Reviewer action");
+      appendReviewerControls(
+        reviewerCell,
+        result,
+        field,
+        annotations,
+        rowIndex,
+      );
+      rowIndex += 1;
+
       resultsBody.append(row);
     }
   });
 
-  addResultsToBacklog(results);
+  if (options.addToBacklog !== false) {
+    addResultsToBacklog(results, annotations, reviewDecisions);
+  }
   resultsSection.hidden = false;
   resultsTitle.focus({ preventScroll: true });
   resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function spreadsheetSafe(value) {
+  const text = String(value ?? "");
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+function serializeCsvCell(value) {
+  const safeValue = spreadsheetSafe(value);
+  return /[",\r\n]/.test(safeValue)
+    ? `"${safeValue.replaceAll('"', '""')}"`
+    : safeValue;
+}
+
+function createReviewedCsv(results, annotations, reviewDecisions) {
+  const headers = [
+    "application_id",
+    "source_file",
+    "overall_status",
+    "review_decision",
+    "field",
+    "expected_value",
+    "observed_value",
+    "field_status",
+    "confidence",
+    "explanation",
+    "processing_time_ms",
+    "reviewer_decision",
+    "reviewer_note",
+  ];
+  const rows = [headers];
+
+  for (const result of results) {
+    for (const field of result.fields) {
+      const annotation = annotations[annotationKey(result, field)] ?? {};
+      rows.push([
+        result.applicationId ?? "",
+        result.sourceFile,
+        result.overallStatus,
+        reviewDecisions[reviewKey(result)] ?? "",
+        field.field,
+        field.expectedValue,
+        field.observedValue,
+        field.status,
+        field.confidence,
+        field.explanation,
+        result.processingTimeMs,
+        annotation.decision ?? "",
+        annotation.note ?? "",
+      ]);
+    }
+  }
+
+  return `${rows.map((row) => row.map(serializeCsvCell).join(",")).join("\r\n")}\r\n`;
 }
 
 async function readError(response) {
@@ -561,17 +969,50 @@ async function loadProviderStatus() {
   }
 }
 
-fileInput.addEventListener("change", renderSelectedPreviews);
+sampleSelect.addEventListener("change", selectSampleLabel);
+fileInput.addEventListener("change", () => {
+  selectedSampleFile = null;
+  sampleSelect.value = "";
+  renderSelectedPreviews();
+});
+
+backlogBody.addEventListener("click", (event) => {
+  const openButton = event.target.closest("[data-review-id]");
+  if (!openButton) return;
+
+  const review = backlogReviews.find(
+    ({ reviewId }) => reviewId === openButton.dataset.reviewId,
+  );
+  if (!review) return;
+
+  renderResults(
+    {
+      results: [review.result],
+      report: { filename: review.filename },
+    },
+    {
+      addToBacklog: false,
+      annotations: review.annotations,
+      reviewDecisions: review.reviewDecisions,
+    },
+  );
+  resultsTitle.textContent = "Backlog review";
+});
 
 downloadButton.addEventListener("click", () => {
-  if (!latestReport) return;
-  const report = new Blob([latestReport.content], {
+  if (!activeReview) return;
+  const content = createReviewedCsv(
+    activeReview.results,
+    activeReview.annotations,
+    activeReview.reviewDecisions,
+  );
+  const report = new Blob([content], {
     type: "text/csv;charset=utf-8",
   });
   const downloadUrl = URL.createObjectURL(report);
   const downloadLink = document.createElement("a");
   downloadLink.href = downloadUrl;
-  downloadLink.download = latestReport.filename;
+  downloadLink.download = activeReview.filename;
   document.body.append(downloadLink);
   downloadLink.click();
   downloadLink.remove();
@@ -580,18 +1021,18 @@ downloadButton.addEventListener("click", () => {
 
 reviewAnotherButton.addEventListener("click", () => {
   resultsSection.hidden = true;
-  latestReport = null;
+  activeReview = null;
   clearSelection();
   setMessage("");
   form.scrollIntoView({ behavior: "smooth", block: "start" });
-  fileInput.focus({ preventScroll: true });
+  sampleSelect.focus({ preventScroll: true });
 });
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   setMessage("");
   resultsSection.hidden = true;
-  latestReport = null;
+  activeReview = null;
 
   const files = selectedFiles();
   if (files.length === 0 || !form.reportValidity()) {
@@ -605,6 +1046,9 @@ form.addEventListener("submit", async (event) => {
   setLoading(true, files.length);
   try {
     const formData = new FormData(form);
+    if (selectedSampleFile) {
+      formData.append("labels", selectedSampleFile);
+    }
     if (files.length > 1) {
       formData.set("applications", JSON.stringify(batchApplications()));
     }

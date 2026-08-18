@@ -21,6 +21,8 @@ interface ParsedVolume {
   milliliters: number;
 }
 
+const DOMESTIC_COUNTRY_EXPECTATION = "Not applicable (domestic product)";
+
 function collapseWhitespace(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -224,6 +226,44 @@ function compareNetContents(
   };
 }
 
+function compareCountryOfOrigin(
+  expectedValue: string | undefined,
+  country: ExtractedLabel["countryOfOrigin"],
+): FieldVerification {
+  const field = "country_of_origin" as const;
+  if (expectedValue) {
+    return compareTextField(
+      field,
+      expectedValue,
+      country.value,
+      country.confidence,
+    );
+  }
+
+  const observed = country.value?.trim() ?? "";
+  if (!observed) {
+    return {
+      field,
+      expectedValue: DOMESTIC_COUNTRY_EXPECTATION,
+      observedValue: "",
+      status: "match",
+      confidence: country.confidence,
+      explanation:
+        "The application does not identify an imported product, and no country-of-origin statement was detected.",
+    };
+  }
+
+  return {
+    field,
+    expectedValue: DOMESTIC_COUNTRY_EXPECTATION,
+    observedValue: observed,
+    status: "needs_review",
+    confidence: country.confidence,
+    explanation:
+      "A country-of-origin statement was detected, but the application does not identify an import. Confirm the application data.",
+  };
+}
+
 function compareWarning(
   warning: ExtractedLabel["governmentWarning"],
 ): FieldVerification {
@@ -324,6 +364,13 @@ export function verifyLabel(
       extracted.netContents.value,
       extracted.netContents.confidence,
     ),
+    compareTextField(
+      "bottler_name_address",
+      expected.bottlerNameAddress,
+      extracted.bottlerNameAddress.value,
+      extracted.bottlerNameAddress.confidence,
+    ),
+    compareCountryOfOrigin(expected.countryOfOrigin, extracted.countryOfOrigin),
     compareWarning(extracted.governmentWarning),
   ];
 
@@ -367,6 +414,11 @@ export function createUnprocessedLabelResult(
       unavailable("class_type", expected.classType),
       unavailable("alcohol_content", expected.alcoholContent),
       unavailable("net_contents", expected.netContents),
+      unavailable("bottler_name_address", expected.bottlerNameAddress),
+      unavailable(
+        "country_of_origin",
+        expected.countryOfOrigin ?? DOMESTIC_COUNTRY_EXPECTATION,
+      ),
       unavailable("government_warning", REQUIRED_GOVERNMENT_WARNING),
     ],
     processingTimeMs,

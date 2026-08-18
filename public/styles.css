@@ -45,7 +45,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -286,10 +288,12 @@ main {
 
 .backlog-table-wrap {
   overflow-x: auto;
+  scrollbar-gutter: stable;
 }
 
 .backlog-table {
   width: 100%;
+  min-width: 880px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -327,6 +331,13 @@ main {
 
 .backlog-table tr.live-review {
   background: var(--blue-50);
+}
+
+.backlog-open-button {
+  min-height: 36px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
 .backlog-retention {
@@ -424,11 +435,25 @@ input[type="text"] {
   border-radius: 0.3rem;
 }
 
-input:hover {
+select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.7rem 2.25rem 0.7rem 0.8rem;
+  color: var(--ink);
+  background: white;
+  border: 1px solid #9facb9;
+  border-radius: 0.3rem;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
   border-color: var(--navy-800);
 }
 
 input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
 button:focus-visible,
 .upload:has(input:focus-visible),
 .upload:focus-within {
@@ -436,10 +461,73 @@ button:focus-visible,
   outline-offset: 2px;
 }
 
+.sample-picker {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.8fr) minmax(0, 1.2fr);
+  align-items: end;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: var(--blue-50);
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+
+.sample-picker label {
+  display: block;
+  margin-bottom: 0.38rem;
+  color: var(--navy-950);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.sample-picker p {
+  margin: 0 0 0.65rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.upload-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.upload-divider::before,
+.upload-divider::after {
+  height: 1px;
+  flex: 1;
+  content: "";
+  background: var(--line);
+}
+
 .hint {
   margin: 0.3rem 0 0;
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+.automatic-check {
+  padding: 0.85rem 1rem;
+  background: var(--success-bg);
+  border-left: 4px solid var(--success);
+  border-radius: 0.25rem;
+}
+
+.automatic-check strong {
+  color: var(--navy-900);
+  font-size: 0.88rem;
+}
+
+.automatic-check p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 .upload {
@@ -773,10 +861,19 @@ button.loading .spinner {
   border-bottom: 1px solid var(--line);
 }
 
-.results-summary > p {
+.results-summary-copy {
   max-width: 610px;
+}
+
+.results-summary-copy p {
   margin: 0;
   color: var(--muted);
+}
+
+.reviewer-summary {
+  margin-top: 0.6rem !important;
+  color: var(--navy-900) !important;
+  font-weight: 700;
 }
 
 .results-summary dl {
@@ -804,12 +901,58 @@ button.loading .spinner {
   white-space: nowrap;
 }
 
+.review-decision-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1rem 2rem;
+  background: var(--blue-50);
+  border-bottom: 1px solid var(--line);
+}
+
+.review-decision-panel h3 {
+  margin: 0;
+  color: var(--navy-900);
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.review-decision-panel p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.review-decision-list {
+  display: grid;
+  flex: 0 1 420px;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.review-decision-item {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(11rem, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.review-decision-item label {
+  color: var(--navy-900);
+  font-size: 0.82rem;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
 .results-table-wrap {
   overflow-x: auto;
+  scrollbar-gutter: stable;
 }
 
 .results-table {
   width: 100%;
+  min-width: 1280px;
   border-collapse: collapse;
   table-layout: fixed;
   text-align: left;
@@ -825,17 +968,21 @@ button.loading .spinner {
 }
 
 .results-table th:first-child {
-  width: 15%;
+  width: 13%;
   padding-left: 2rem;
 }
 
 .results-table th:nth-child(2),
 .results-table th:nth-child(3) {
-  width: 27%;
+  width: 20%;
+}
+
+.results-table th:nth-child(4) {
+  width: 22%;
 }
 
 .results-table th:last-child {
-  width: 31%;
+  width: 25%;
   padding-right: 2rem;
 }
 
@@ -892,6 +1039,43 @@ button.loading .spinner {
   margin: 0.45rem 0 0;
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.reviewer-controls {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.reviewer-controls label {
+  color: var(--navy-900);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.reviewer-controls select,
+.reviewer-controls textarea {
+  width: 100%;
+  color: var(--ink);
+  background: white;
+  border: 1px solid #9facb9;
+  border-radius: 0.3rem;
+}
+
+.reviewer-controls select {
+  min-height: 40px;
+  padding: 0.5rem 2rem 0.5rem 0.6rem;
+}
+
+.reviewer-controls textarea {
+  min-height: 76px;
+  padding: 0.55rem 0.6rem;
+  resize: vertical;
+}
+
+.reviewer-decision-unavailable {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
 }
 
 .results-actions {
@@ -967,7 +1151,8 @@ footer p {
   }
 
   .intro,
-  .field-grid {
+  .field-grid,
+  .sample-picker {
     grid-template-columns: 1fr;
   }
 
@@ -1010,6 +1195,7 @@ footer p {
   .backlog-table td {
     display: block;
     width: 100%;
+    min-width: 0;
   }
 
   .backlog-table thead {
@@ -1060,6 +1246,7 @@ footer p {
 
   .results-heading,
   .results-summary,
+  .review-decision-panel,
   .results-actions,
   .results-actions > div {
     align-items: stretch;
@@ -1068,6 +1255,7 @@ footer p {
 
   .results-heading,
   .results-summary,
+  .review-decision-panel,
   .results-actions {
     padding-inline: 1.15rem;
   }
@@ -1076,6 +1264,15 @@ footer p {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
+  }
+
+  .review-decision-list {
+    flex-basis: auto;
+  }
+
+  .review-decision-item {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
   }
 
   .results-table-wrap {
@@ -1088,6 +1285,7 @@ footer p {
   .results-table td {
     display: block;
     width: 100%;
+    min-width: 0;
   }
 
   .results-table thead {

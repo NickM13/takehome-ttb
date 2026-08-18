@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -70,6 +71,7 @@ function validRequest(app: ReturnType<typeof buildApp>) {
     .field("classType", "Kentucky Straight Bourbon Whiskey")
     .field("alcoholContent", "45% Alc./Vol. (90 Proof)")
     .field("netContents", "750 mL")
+    .field("bottlerNameAddress", "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY")
     .attach("label", onePixelPng, {
       filename: "label.png",
       contentType: "image/png",
@@ -84,6 +86,7 @@ function validBatchRequest(app: ReturnType<typeof buildApp>) {
       classType: "Kentucky Straight Bourbon Whiskey",
       alcoholContent: "45% Alc./Vol. (90 Proof)",
       netContents: "750 mL",
+      bottlerNameAddress: "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
     },
     {
       applicationId: "COLA-TWO",
@@ -91,6 +94,7 @@ function validBatchRequest(app: ReturnType<typeof buildApp>) {
       classType: "Kentucky Straight Bourbon Whiskey",
       alcoholContent: "45% Alc./Vol. (90 Proof)",
       netContents: "750 mL",
+      bottlerNameAddress: "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
     },
   ];
 
@@ -116,13 +120,70 @@ describe("application", () => {
     expect(response.text).toContain("Download CSV");
     expect(response.text).toContain("Review backlog");
     expect(response.text).toContain('id="backlog-body"');
+    expect(response.text).toContain("Reviewer decision");
+    expect(response.text).toContain("Reviewer action");
+    expect(response.text).toContain('id="reviewer-summary"');
+    expect(response.text).toContain('id="review-decision-list"');
+    expect(response.text).toContain("Final reviewer decision");
+    expect(response.text).not.toContain('<th scope="col">Label</th>');
     expect(response.text).toContain('href="/sample-reviews.csv"');
+    expect(response.text).toContain('id="sample-label"');
+    expect(response.text).toContain("Captain John's Spiced Rum");
+    expect(response.text).toContain("Lighthouse Stormchaser Chardonnay");
+    expect(response.text).toContain("Malt &amp; Hop Honey Huckleberry Pie Ale");
+    expect(response.text).toContain('id="bottlerNameAddress"');
+    expect(response.text).toContain('id="countryOfOrigin"');
+    expect(response.text).toContain("Government health warning");
     expect(response.text).toContain('id="preview-region"');
     expect(response.text).toContain('name="labels"');
     expect(response.text).toContain("multiple");
     expect(response.headers["content-security-policy"]).toContain(
       "frame-ancestors 'none'",
     );
+  });
+
+  it("serves the three official sample label images", async () => {
+    const paths = [
+      "/sample-labels/captain-johns-spiced-rum.png",
+      "/sample-labels/lighthouse-chardonnay.png",
+      "/sample-labels/malt-and-hop-ale.png",
+    ];
+
+    for (const path of paths) {
+      const response = await request(buildApp()).get(path).expect(200);
+      expect(response.headers["content-type"]).toContain("image/png");
+      expect(response.headers["content-length"]).toBeDefined();
+    }
+  });
+
+  it("accepts each official sample label through the verification upload path", async () => {
+    const filenames = [
+      "captain-johns-spiced-rum.png",
+      "lighthouse-chardonnay.png",
+      "malt-and-hop-ale.png",
+    ];
+
+    for (const filename of filenames) {
+      const image = readFileSync(
+        new URL(`../public/sample-labels/${filename}`, import.meta.url),
+      );
+      await request(buildApp())
+        .post("/api/verifications")
+        .set("Accept", "application/json")
+        .field("brandName", "OLD TOM DISTILLERY")
+        .field("classType", "Kentucky Straight Bourbon Whiskey")
+        .field("alcoholContent", "45% Alc./Vol. (90 Proof)")
+        .field("netContents", "750 mL")
+        .field(
+          "bottlerNameAddress",
+          "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
+        )
+        .attach("labels", image, {
+          filename,
+          contentType: "image/png",
+        })
+        .expect(200);
+    }
   });
 
   it("serves six repository-backed sample backlog reviews", async () => {
@@ -132,13 +193,14 @@ describe("application", () => {
     const lines = response.text.trim().split(/\r?\n/);
 
     expect(response.headers["content-type"]).toContain("text/csv");
-    expect(lines).toHaveLength(7);
+    expect(lines).toHaveLength(43);
     expect(lines[0]).toBe(
-      "review_id,submitted_at,application_id,source_file,brand_name,class_type,alcohol_content,net_contents,overall_status,review_summary",
+      "review_id,submitted_at,application_id,source_file,overall_status,field,expected_value,observed_value,field_status,confidence,explanation,processing_time_ms",
     );
     expect(response.text).toContain("DEMO-001");
     expect(response.text).toContain("DEMO-006");
     expect(response.text).toContain("needs_review");
+    expect(lines.filter((line) => line.startsWith("DEMO-005,")).length).toBe(7);
   });
 
   it("reports the explicitly active fixture provider", async () => {
@@ -186,6 +248,18 @@ describe("application", () => {
       observedValue: "OLD TOM DISTILLERY",
       status: "match",
     });
+    expect(body.result.fields).toContainEqual({
+      field: "bottler_name_address",
+      expectedValue: "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
+      observedValue: "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
+      status: "match",
+    });
+    expect(body.result.fields).toContainEqual({
+      field: "country_of_origin",
+      expectedValue: "Not applicable (domestic product)",
+      observedValue: "",
+      status: "match",
+    });
     expect(body.report.content).toContain("COLA-123,label.png,match");
   });
 
@@ -221,6 +295,7 @@ describe("application", () => {
             classType: "Kentucky Straight Bourbon Whiskey",
             alcoholContent: "45% Alc./Vol. (90 Proof)",
             netContents: "750 mL",
+            bottlerNameAddress: "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
           },
         ]),
       )
@@ -279,6 +354,10 @@ describe("application", () => {
       .field("classType", "Kentucky Straight Bourbon Whiskey")
       .field("alcoholContent", "45% Alc./Vol. (90 Proof)")
       .field("netContents", "750 mL")
+      .field(
+        "bottlerNameAddress",
+        "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
+      )
       .attach("label", Buffer.from("not an image"), {
         filename: "label.png",
         contentType: "image/png",
@@ -296,6 +375,10 @@ describe("application", () => {
       .field("brandName", "OLD TOM DISTILLERY")
       .field("alcoholContent", "45% Alc./Vol. (90 Proof)")
       .field("netContents", "750 mL")
+      .field(
+        "bottlerNameAddress",
+        "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
+      )
       .attach("label", onePixelPng, {
         filename: "label.png",
         contentType: "image/png",

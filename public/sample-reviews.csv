@@ -1,7 +1,43 @@
-review_id,submitted_at,application_id,source_file,brand_name,class_type,alcohol_content,net_contents,overall_status,review_summary
-DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,HARBOR LIGHT,Distilled Gin,47% Alc./Vol. (94 Proof),750 mL,match,All configured fields match
-DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,MESA ROJA,Tequila Blanco,40% Alc./Vol. (80 Proof),750 mL,match,All configured fields match
-DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,NORTH FORK,Vodka,40% Alc./Vol. (80 Proof),1 L,mismatch,Government warning wording does not match
-DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,STONE BRIDGE,Kentucky Straight Bourbon Whiskey,50% Alc./Vol. (100 Proof),750 mL,mismatch,Observed alcohol content differs from the application
-DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,CASCADE PEAR,Pear Brandy,42% Alc./Vol. (84 Proof),750 mL,needs_review,Glare makes the net contents unreadable
-DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,OLD TOM RESERVE,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,mismatch,Observed net contents differ from the application
+review_id,submitted_at,application_id,source_file,overall_status,field,expected_value,observed_value,field_status,confidence,explanation,processing_time_ms
+DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,match,brand_name,HARBOR LIGHT,HARBOR LIGHT,match,0.99,Brand name matches after normalization,3210
+DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,match,class_type,Distilled Gin,Distilled Gin,match,0.98,Class or type matches,3210
+DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,match,alcohol_content,47% Alc./Vol. (94 Proof),47% Alc./Vol. (94 Proof),match,0.99,Alcohol content and proof are consistent,3210
+DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,match,net_contents,750 mL,750 mL,match,0.99,Net contents match,3210
+DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,match,bottler_name_address,Harbor Light Distilling Portland OR,Harbor Light Distilling Portland OR,match,0.97,Bottler name and address match,3210
+DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,match,country_of_origin,Not applicable (domestic product),,match,0.98,No import origin was expected or observed,3210
+DEMO-001,2026-08-18T08:15:00-07:00,COLA-2026-10421,harbor-light-gin.png,match,government_warning,Required government warning wording,Required government warning wording,match,0.97,Required warning text and heading were detected,3210
+DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,match,brand_name,MESA ROJA,MESA ROJA,match,0.99,Brand name matches after normalization,3440
+DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,match,class_type,Tequila Blanco,Tequila Blanco,match,0.98,Class or type matches,3440
+DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,match,alcohol_content,40% Alc./Vol. (80 Proof),40% Alc./Vol. (80 Proof),match,0.99,Alcohol content and proof are consistent,3440
+DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,match,net_contents,750 mL,750 mL,match,0.99,Net contents match,3440
+DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,match,bottler_name_address,Imported by Mesa Roja Imports San Diego CA,Imported by Mesa Roja Imports San Diego CA,match,0.96,Importer name and address match,3440
+DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,match,country_of_origin,Mexico,Mexico,match,0.98,Country of origin matches,3440
+DEMO-002,2026-08-18T08:42:00-07:00,COLA-2026-10422,mesa-roja-tequila.png,match,government_warning,Required government warning wording,Required government warning wording,match,0.97,Required warning text and heading were detected,3440
+DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,mismatch,brand_name,NORTH FORK,NORTH FORK,match,0.99,Brand name matches after normalization,2980
+DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,mismatch,class_type,Vodka,Vodka,match,0.99,Class or type matches,2980
+DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,mismatch,alcohol_content,40% Alc./Vol. (80 Proof),40% Alc./Vol. (80 Proof),match,0.98,Alcohol content and proof are consistent,2980
+DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,mismatch,net_contents,1 L,1 L,match,0.99,Net contents match,2980
+DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,mismatch,bottler_name_address,North Fork Spirits Minneapolis MN,North Fork Spirits Minneapolis MN,match,0.97,Bottler name and address match,2980
+DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,mismatch,country_of_origin,Not applicable (domestic product),,match,0.98,No import origin was expected or observed,2980
+DEMO-003,2026-08-18T09:05:00-07:00,COLA-2026-10423,north-fork-vodka.png,mismatch,government_warning,Required government warning wording,Warning text is missing required pregnancy wording,mismatch,0.95,Government warning wording is incomplete,2980
+DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,mismatch,brand_name,STONE BRIDGE,STONE BRIDGE,match,0.99,Brand name matches after normalization,3650
+DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,mismatch,class_type,Kentucky Straight Bourbon Whiskey,Kentucky Straight Bourbon Whiskey,match,0.98,Class or type matches,3650
+DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,mismatch,alcohol_content,50% Alc./Vol. (100 Proof),45% Alc./Vol. (90 Proof),mismatch,0.99,Observed alcohol content differs from the application,3650
+DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,mismatch,net_contents,750 mL,750 mL,match,0.99,Net contents match,3650
+DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,mismatch,bottler_name_address,Stone Bridge Distillery Bardstown KY,Stone Bridge Distillery Bardstown KY,match,0.97,Bottler name and address match,3650
+DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,mismatch,country_of_origin,Not applicable (domestic product),,match,0.98,No import origin was expected or observed,3650
+DEMO-004,2026-08-18T09:31:00-07:00,COLA-2026-10424,stone-bridge-bourbon.png,mismatch,government_warning,Required government warning wording,Required government warning wording,match,0.96,Required warning text and heading were detected,3650
+DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,needs_review,brand_name,CASCADE PEAR,CASCADE PEAR,match,0.99,Brand name matches after normalization,4020
+DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,needs_review,class_type,Pear Brandy,Pear Brandy,match,0.98,Class or type matches,4020
+DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,needs_review,alcohol_content,42% Alc./Vol. (84 Proof),42% Alc./Vol. (84 Proof),match,0.97,Alcohol content and proof are consistent,4020
+DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,needs_review,net_contents,750 mL,,needs_review,0.42,Glare makes the net contents unreadable,4020
+DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,needs_review,bottler_name_address,Cascade Fruit Spirits Hood River OR,Cascade Fruit Spirits Hood River OR,match,0.96,Bottler name and address match,4020
+DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,needs_review,country_of_origin,Not applicable (domestic product),,match,0.97,No import origin was expected or observed,4020
+DEMO-005,2026-08-18T10:12:00-07:00,COLA-2026-10425,cascade-pear-brandy.png,needs_review,government_warning,Required government warning wording,Required government warning wording,match,0.94,Required warning text and heading were detected,4020
+DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,brand_name,OLD TOM RESERVE,OLD TOM RESERVE,match,0.99,Brand name matches after normalization,3175
+DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,class_type,Kentucky Straight Bourbon Whiskey,Kentucky Straight Bourbon Whiskey,match,0.98,Class or type matches,3175
+DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,alcohol_content,45% Alc./Vol. (90 Proof),45% Alc./Vol. (90 Proof),match,0.99,Alcohol content and proof are consistent,3175
+DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,net_contents,750 mL,1 L,mismatch,0.99,Observed net contents differ from the application,3175
+DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,bottler_name_address,Old Tom Distillery Frankfort KY,Old Tom Distillery Frankfort KY,match,0.97,Bottler name and address match,3175
+DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,country_of_origin,Not applicable (domestic product),,match,0.98,No import origin was expected or observed,3175
+DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,government_warning,Required government warning wording,Required government warning wording,match,0.96,Required warning text and heading were detected,3175

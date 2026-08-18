@@ -30,8 +30,10 @@ A user should be able to:
 3. Start verification with one clear action.
 4. Review the overall status and field-by-field comparison on the page.
 5. See the entered value, AI-observed value, confidence, and why each field matched, mismatched, or needs review.
-6. Download the completed result as a CSV when desired.
-7. Correct the input or retry after a clear error without losing unrelated work.
+6. Add a reviewer note to any field and approve or reject fields marked `needs_review`.
+7. Reopen and complete any item in the session backlog.
+8. Download the completed result as a CSV when desired.
+9. Correct the input or retry after a clear error without losing unrelated work.
 
 At minimum, support the example distilled-spirits fields in the README:
 
@@ -39,9 +41,11 @@ At minimum, support the example distilled-spirits fields in the README:
 - Class/type designation
 - Alcohol content, including proof where present
 - Net contents
+- Name and address of the bottler or producer
+- Country of origin for imported products
 - Government health warning
 
-If time permits, support the other common fields listed in the README and a simple batch upload flow.
+The government warning is a centrally configured rule rather than user-entered expected text. Country of origin is conditional and must not be required for domestic products.
 
 ### Explicit non-goals for this prototype
 
@@ -62,8 +66,8 @@ The README leaves some details open. Until the product owner says otherwise, use
 - Common raster image formats are sufficient for the first vertical slice. PDF support is optional.
 - One application-value record maps to one uploaded label image. A batch contains up to 10 such records in selection order.
 - Uploaded files, extracted text, and verification results are request-scoped and ephemeral.
-- Six synthetic review summaries from `public/sample-reviews.csv` preload the backlog. Newly completed reviews are prepended in browser memory and disappear on refresh.
-- Successful results are shown in a request-scoped on-page comparison and can be downloaded as a CSV. The backlog is a demo/session view, not durable history; no database is required.
+- Six complete synthetic reviews from `public/sample-reviews.csv` preload the backlog. Newly completed reviews are prepended in browser memory and disappear on refresh.
+- Successful results are shown in a request-scoped on-page comparison and can be downloaded as a CSV. Backlog items are reopenable, show a separate final human decision of `approved`, `rejected`, or pending, and keep reviewer annotations in browser memory only; no database is required.
 - The demo may use synthetic labels and non-sensitive data.
 - The user remains the final decision-maker whenever the image is unreadable, extraction confidence is low, or a regulatory rule requires judgment.
 
@@ -78,6 +82,10 @@ Represent every check with one of three outcomes:
 - `needs_review`: the value is missing, ambiguous, unreadable, unsupported, or below the confidence threshold.
 
 Do not turn missing data, model errors, or low confidence into a definitive mismatch. The overall result should be `needs_review` if any required field cannot be assessed reliably.
+
+Keep the automated field status separate from human adjudication. A reviewer may mark a `needs_review` field as `approved` or `rejected`, but that disposition must not overwrite the automated evidence or status. Allow a reviewer note on every field and include both annotation values in browser-downloaded CSV reports.
+
+Also keep one final human decision for each complete review. It may be `approved`, `rejected`, or pending and must be displayed separately from the aggregate AI status in the backlog and CSV export.
 
 Each result should preserve useful evidence where available:
 
@@ -95,6 +103,8 @@ Each result should preserve useful evidence where available:
 - Do not use broad fuzzy matching without exposing it. If similarity is borderline, return `needs_review`.
 - Parse alcohol values into canonical numeric forms when possible. Cross-check ABV and proof when both are present; for distilled spirits, proof is normally twice the ABV, subject to an explicit tolerance.
 - Normalize equivalent net-content units only when conversion is exact and the displayed regulatory form is not itself under review.
+- Compare the complete visible bottler/producer name-and-address statement conservatively; do not silently discard qualifying wording.
+- Extract country of origin only from an explicit import-origin statement. Do not infer it from a city, state, appellation, or region. An unexpected readable origin on an application marked domestic should return `needs_review`.
 - Treat the government warning as a dedicated rule, not a generic fuzzy text comparison. Validate required wording, the `GOVERNMENT WARNING:` heading, capitalization, and any presentation requirements the implementation can actually observe.
 - OCR cannot reliably prove visual properties such as bold weight or minimum type size unless layout/style evidence is available. Return `needs_review` rather than claiming compliance when those properties cannot be assessed.
 
@@ -230,6 +240,8 @@ Every change should be verified at the lowest useful level, and core workflow ch
 - Exact government-warning rule, including missing words and incorrect heading case
 - ABV/proof parsing and inconsistency detection
 - Net-content parsing
+- Bottler/producer name-and-address comparison
+- Conditional import country-of-origin behavior
 - Provider response schema validation
 - Overall status aggregation
 - CSV schema, escaping, safe filenames, and spreadsheet formula-injection protection

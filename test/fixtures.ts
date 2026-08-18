@@ -28,6 +28,16 @@ export function createMatchingExtraction(): ExtractedLabel {
       confidence: 0.99,
       evidence: "750 mL",
     },
+    bottlerNameAddress: {
+      value: "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
+      confidence: 0.99,
+      evidence: "BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY",
+    },
+    countryOfOrigin: {
+      value: null,
+      confidence: 0,
+      evidence: null,
+    },
     governmentWarning: {
       value: REQUIRED_GOVERNMENT_WARNING,
       confidence: 0.96,

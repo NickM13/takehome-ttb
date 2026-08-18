@@ -19,6 +19,8 @@ export const extractedLabelSchema = z.object({
   classType: observedFieldSchema,
   alcoholContent: observedFieldSchema,
   netContents: observedFieldSchema,
+  bottlerNameAddress: observedFieldSchema,
+  countryOfOrigin: observedFieldSchema,
   governmentWarning: observedFieldSchema.extend({
     headingAllCaps: z.boolean().nullable(),
     headingBold: z.boolean().nullable(),
@@ -35,6 +37,8 @@ export interface ExpectedLabel {
   classType: string;
   alcoholContent: string;
   netContents: string;
+  bottlerNameAddress: string;
+  countryOfOrigin?: string;
 }
 
 export type VerificationField =
@@ -42,6 +46,8 @@ export type VerificationField =
   | "class_type"
   | "alcohol_content"
   | "net_contents"
+  | "bottler_name_address"
+  | "country_of_origin"
   | "government_warning";
 
 export interface FieldVerification {

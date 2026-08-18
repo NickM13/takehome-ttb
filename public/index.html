@@ -52,8 +52,8 @@
             <p class="step-label">Current queue</p>
             <h2 id="backlog-title">Review backlog</h2>
             <p>
-              Six demo reviews are preloaded. Reviews completed in this browser
-              are added to the top of the queue.
+              Six demo reviews are preloaded and can be opened below. Reviews
+              completed in this browser are added to the top of the queue.
             </p>
           </div>
           <div class="backlog-heading-meta">
@@ -74,15 +74,16 @@
         <div class="backlog-table-wrap">
           <table class="backlog-table">
             <caption class="visually-hidden">
-              Reviews waiting in the current demonstration backlog
+              Reviews available in the current demonstration backlog
             </caption>
             <thead>
               <tr>
                 <th scope="col">Application</th>
-                <th scope="col">Label</th>
                 <th scope="col">Brand</th>
                 <th scope="col">Received</th>
-                <th scope="col">Status</th>
+                <th scope="col">AI status</th>
+                <th scope="col">Reviewer decision</th>
+                <th scope="col">Action</th>
               </tr>
             </thead>
             <tbody id="backlog-body"></tbody>
@@ -175,11 +176,74 @@
                   required
                 />
               </div>
+
+              <div class="field field-wide">
+                <label for="bottlerNameAddress"
+                  >Bottler or producer name and address *</label
+                >
+                <input
+                  id="bottlerNameAddress"
+                  name="bottlerNameAddress"
+                  type="text"
+                  maxlength="400"
+                  value="BOTTLED BY OLD TOM DISTILLERY, FRANKFORT, KY"
+                  required
+                />
+              </div>
+
+              <div class="field field-wide">
+                <label for="countryOfOrigin"
+                  >Country of origin <span>Imports only</span></label
+                >
+                <input
+                  id="countryOfOrigin"
+                  name="countryOfOrigin"
+                  type="text"
+                  maxlength="100"
+                  autocomplete="country-name"
+                  placeholder="e.g., France"
+                />
+                <p class="hint">Leave blank for a domestic product.</p>
+              </div>
+
+              <div class="field field-wide automatic-check">
+                <strong>Government health warning</strong>
+                <p>
+                  Checked automatically against the required federal wording and
+                  any visible capitalization, bold treatment, and paragraph
+                  formatting.
+                </p>
+              </div>
             </div>
           </fieldset>
 
           <fieldset>
             <legend>Label artwork</legend>
+            <div class="sample-picker">
+              <div>
+                <label for="sample-label">Use a sample label</label>
+                <select id="sample-label">
+                  <option value="">Choose a TTB sample…</option>
+                  <option value="captain-johns">
+                    Captain John's Spiced Rum
+                  </option>
+                  <option value="lighthouse">
+                    Lighthouse Stormchaser Chardonnay
+                  </option>
+                  <option value="malt-and-hop">
+                    Malt &amp; Hop Honey Huckleberry Pie Ale
+                  </option>
+                </select>
+              </div>
+              <p>
+                Selecting a sample also fills its expected application values.
+                The artwork comes from official, fictitious TTB guidance
+                examples.
+              </p>
+            </div>
+
+            <div class="upload-divider"><span>or upload artwork</span></div>
+
             <label class="upload" for="label">
               <span class="upload-icon" aria-hidden="true">↑</span>
               <span class="upload-copy">
@@ -197,7 +261,6 @@
               type="file"
               accept="image/jpeg,image/png,image/webp"
               multiple
-              required
             />
 
             <div id="preview-region" class="preview-region" hidden>
@@ -256,7 +319,15 @@
         </div>
 
         <div class="results-summary">
-          <p id="results-summary-text"></p>
+          <div class="results-summary-copy">
+            <p id="results-summary-text"></p>
+            <p
+              id="reviewer-summary"
+              class="reviewer-summary"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </div>
           <dl>
             <div>
               <dt>Source file</dt>
@@ -269,6 +340,19 @@
           </dl>
         </div>
 
+        <section
+          class="review-decision-panel"
+          aria-labelledby="review-decision-title"
+        >
+          <div>
+            <h3 id="review-decision-title">Final reviewer decision</h3>
+            <p>
+              Record the human outcome after reviewing the automated evidence.
+            </p>
+          </div>
+          <div id="review-decision-list" class="review-decision-list"></div>
+        </section>
+
         <div class="results-table-wrap">
           <table class="results-table">
             <caption class="visually-hidden">
@@ -280,6 +364,7 @@
                 <th scope="col">Entered value</th>
                 <th scope="col">AI-observed value</th>
                 <th scope="col">Comparison</th>
+                <th scope="col">Reviewer action</th>
               </tr>
             </thead>
             <tbody id="results-body"></tbody>
@@ -288,7 +373,7 @@
 
         <div class="results-actions">
           <p>
-            Save the CSV if this review needs to be retained outside the app.
+            Reviewer decisions and notes are included when you download the CSV.
           </p>
           <div>
             <button

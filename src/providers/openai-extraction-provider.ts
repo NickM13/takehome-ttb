@@ -8,6 +8,8 @@ const EXTRACTION_INSTRUCTIONS = `You extract visible compliance evidence from on
 Return only what is visible. Do not fill in missing text from general knowledge.
 Preserve exact capitalization, punctuation, and wording, especially for the full government warning.
 For confidence, use 0 when absent/unreadable and reserve high confidence for clearly legible text.
+Extract the complete bottler, producer, importer, or brewer name-and-address statement, including its qualifying phrase when visible.
+Extract country of origin only from an explicit import-origin statement such as "Product of France". Return only the country name as the field value and preserve the full visible statement as evidence. Do not infer a country from a city, state, appellation, or regional designation.
 The government warning style fields describe only visible evidence. Return null when bold weight or continuous-paragraph layout cannot be established reliably.
 The bodyBold field is true only when the warning text after the GOVERNMENT WARNING heading is bold.`;
 
@@ -100,7 +102,7 @@ export class OpenAIExtractionProvider implements ExtractionProvider {
             content: [
               {
                 type: "input_text",
-                text: "Extract the five configured fields and visible warning-format evidence from this label.",
+                text: "Extract the seven configured fields and visible warning-format evidence from this label.",
               },
               {
                 type: "input_image",

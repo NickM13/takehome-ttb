@@ -28,6 +28,13 @@ const expectedLabelSchema = z.object({
   classType: z.string().trim().min(1).max(300),
   alcoholContent: z.string().trim().min(1).max(100),
   netContents: z.string().trim().min(1).max(100),
+  bottlerNameAddress: z.string().trim().min(1).max(400),
+  countryOfOrigin: z
+    .string()
+    .trim()
+    .max(100)
+    .transform((value) => value || undefined)
+    .optional(),
 });
 
 const MAX_BATCH_SIZE = 10;
@@ -41,7 +48,11 @@ function toExpectedLabel(
     classType: parsed.classType,
     alcoholContent: parsed.alcoholContent,
     netContents: parsed.netContents,
+    bottlerNameAddress: parsed.bottlerNameAddress,
     ...(parsed.applicationId ? { applicationId: parsed.applicationId } : {}),
+    ...(parsed.countryOfOrigin
+      ? { countryOfOrigin: parsed.countryOfOrigin }
+      : {}),
   };
 }
 
