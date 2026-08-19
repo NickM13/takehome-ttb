@@ -1267,17 +1267,29 @@ function createFieldResultRows(result, field, annotations, fieldIndex) {
   detailCell.append(detailPanel);
   detailRow.append(detailCell);
 
-  toggle.addEventListener("click", () => {
-    const willExpand = detailRow.hidden;
-    detailRow.hidden = !willExpand;
-    summaryRow.classList.toggle("field-summary-row-expanded", willExpand);
-    toggle.setAttribute("aria-expanded", String(willExpand));
+  function setFieldDetailsExpanded(expanded) {
+    detailRow.hidden = !expanded;
+    summaryRow.classList.toggle("field-summary-row-expanded", expanded);
+    toggle.setAttribute("aria-expanded", String(expanded));
     toggle.setAttribute(
       "aria-label",
-      `${willExpand ? "Hide" : "View"} details for ${fieldName}`,
+      `${expanded ? "Hide" : "View"} details for ${fieldName}`,
     );
-    toggleHint.textContent = willExpand ? "Hide details" : "View details";
+    toggleHint.textContent = expanded ? "Hide details" : "View details";
+  }
+
+  function toggleFieldDetails() {
+    setFieldDetailsExpanded(detailRow.hidden);
+  }
+
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleFieldDetails();
   });
+  summaryRow.addEventListener("click", () => {
+    toggleFieldDetails();
+  });
+  setFieldDetailsExpanded(fieldRequiresDecision(field));
 
   return [summaryRow, detailRow];
 }

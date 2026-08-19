@@ -172,7 +172,14 @@ describe("static accessibility safeguards", () => {
       'toggleArrow.setAttribute("aria-hidden", "true")',
     );
     expect(clientScript).toContain(
-      'summaryRow.classList.toggle("field-summary-row-expanded", willExpand)',
+      'summaryRow.classList.toggle("field-summary-row-expanded", expanded)',
+    );
+    expect(clientScript).toContain(
+      'summaryRow.addEventListener("click", () => {',
+    );
+    expect(clientScript).toContain("event.stopPropagation()");
+    expect(clientScript).toContain(
+      "setFieldDetailsExpanded(fieldRequiresDecision(field))",
     );
     expect(clientScript).toContain(
       "updateReviewerFieldStatus(reviewerStatusIndicator, field, annotation)",
@@ -193,6 +200,8 @@ describe("static accessibility safeguards", () => {
       '.field-detail-toggle[aria-expanded="true"] .field-toggle-arrow',
     );
     expect(css).toContain(".field-summary-row-expanded > th");
+    expect(css).toContain(".field-summary-row:hover > th");
+    expect(css).toContain(".field-summary-row:focus-within > th");
     expect(css).toContain("border-bottom: 4px solid var(--blue-700)");
   });
 

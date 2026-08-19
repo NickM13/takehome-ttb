@@ -1247,6 +1247,17 @@ button.review-reject-button.selected {
   vertical-align: middle;
 }
 
+.field-summary-row {
+  cursor: pointer;
+}
+
+.field-summary-row:hover > th,
+.field-summary-row:hover > td,
+.field-summary-row:focus-within > th,
+.field-summary-row:focus-within > td {
+  background: #f1f6f9;
+}
+
 .field-summary-row > th {
   border-left: 4px solid var(--blue-700);
 }
@@ -1313,6 +1324,13 @@ button.review-reject-button.selected {
 .field-summary-row-expanded > td {
   background: var(--blue-50);
   border-bottom-color: #a9bdcc;
+}
+
+.field-summary-row-expanded:hover > th,
+.field-summary-row-expanded:hover > td,
+.field-summary-row-expanded:focus-within > th,
+.field-summary-row-expanded:focus-within > td {
+  background: var(--blue-100);
 }
 
 .field-details-row > td {
