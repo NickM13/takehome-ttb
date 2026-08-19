@@ -123,7 +123,14 @@ describe("application", () => {
     expect(response.text).toContain("Reviewer decision");
     expect(response.text).toContain('id="bulk-review-button"');
     expect(response.text).toContain('id="bulk-selection-summary"');
+    expect(response.text).toContain('id="backlog-pagination"');
+    expect(response.text).toContain('id="previous-backlog-page-button"');
+    expect(response.text).toContain('id="next-backlog-page-button"');
     expect(response.text).toContain('id="select-all-reviews"');
+    expect(response.text).toContain('id="start-verification-button"');
+    expect(response.text).toContain('id="back-from-verification-button"');
+    expect(response.text).toContain('id="back-to-backlog-top-button"');
+    expect(response.text).toContain('id="back-to-backlog-button"');
     expect(response.text).toContain('id="reviewer-summary"');
     expect(response.text).toContain('id="review-artwork-image"');
     expect(response.text).toContain('id="review-pager"');
@@ -192,21 +199,24 @@ describe("application", () => {
     }
   });
 
-  it("serves six repository-backed sample backlog reviews", async () => {
+  it("serves twelve repository-backed sample backlog reviews", async () => {
     const response = await request(buildApp())
       .get("/sample-reviews.csv")
       .expect(200);
     const lines = response.text.trim().split(/\r?\n/);
 
     expect(response.headers["content-type"]).toContain("text/csv");
-    expect(lines).toHaveLength(43);
+    expect(lines).toHaveLength(85);
     expect(lines[0]).toBe(
       "review_id,submitted_at,application_id,source_file,overall_status,field,expected_value,observed_value,field_status,confidence,explanation,processing_time_ms",
     );
     expect(response.text).toContain("DEMO-001");
-    expect(response.text).toContain("DEMO-006");
+    expect(response.text).toContain("DEMO-012");
     expect(response.text).toContain("needs_review");
-    expect(lines.filter((line) => line.startsWith("DEMO-005,")).length).toBe(7);
+    for (let reviewNumber = 1; reviewNumber <= 12; reviewNumber += 1) {
+      const reviewId = `DEMO-${String(reviewNumber).padStart(3, "0")},`;
+      expect(lines.filter((line) => line.startsWith(reviewId))).toHaveLength(7);
+    }
   });
 
   it("reports the explicitly active fixture provider", async () => {

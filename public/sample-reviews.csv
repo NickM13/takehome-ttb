@@ -41,3 +41,45 @@ DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,
 DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,bottler_name_address,Old Tom Distillery Frankfort KY,Old Tom Distillery Frankfort KY,match,0.97,Bottler name and address match,3175
 DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,country_of_origin,Not applicable (domestic product),,match,0.98,No import origin was expected or observed,3175
 DEMO-006,2026-08-18T10:46:00-07:00,COLA-2026-10426,old-tom-reserve.png,mismatch,government_warning,Required government warning wording,Required government warning wording,match,0.96,Required warning text and heading were detected,3175
+DEMO-007,2026-08-18T11:10:00-07:00,COLA-2026-10427,lakeview-riesling.png,match,brand_name,LAKEVIEW CELLARS,LAKEVIEW CELLARS,match,0.99,Brand name matches after normalization,2860
+DEMO-007,2026-08-18T11:10:00-07:00,COLA-2026-10427,lakeview-riesling.png,match,class_type,Riesling,Riesling,match,0.98,Class or type matches,2860
+DEMO-007,2026-08-18T11:10:00-07:00,COLA-2026-10427,lakeview-riesling.png,match,alcohol_content,12.5% Alc./Vol.,12.5% Alc./Vol.,match,0.98,Alcohol content matches,2860
+DEMO-007,2026-08-18T11:10:00-07:00,COLA-2026-10427,lakeview-riesling.png,match,net_contents,750 mL,750 mL,match,0.99,Net contents match,2860
+DEMO-007,2026-08-18T11:10:00-07:00,COLA-2026-10427,lakeview-riesling.png,match,bottler_name_address,Imported by Lakeview Wine Company Chicago IL,Imported by Lakeview Wine Company Chicago IL,match,0.96,Importer name and address match,2860
+DEMO-007,2026-08-18T11:10:00-07:00,COLA-2026-10427,lakeview-riesling.png,match,country_of_origin,Germany,Germany,match,0.98,Country of origin matches,2860
+DEMO-007,2026-08-18T11:10:00-07:00,COLA-2026-10427,lakeview-riesling.png,match,government_warning,Required government warning wording,Required government warning wording,match,0.97,Required warning text and heading were detected,2860
+DEMO-008,2026-08-18T11:36:00-07:00,COLA-2026-10428,copper-finch-ipa.png,needs_review,brand_name,COPPER FINCH,COPPER FINCH,match,0.99,Brand name matches after normalization,4380
+DEMO-008,2026-08-18T11:36:00-07:00,COLA-2026-10428,copper-finch-ipa.png,needs_review,class_type,Hazy India Pale Ale,Hazy India Pale Ale,match,0.97,Class or type matches,4380
+DEMO-008,2026-08-18T11:36:00-07:00,COLA-2026-10428,copper-finch-ipa.png,needs_review,alcohol_content,6.5% Alc./Vol.,,needs_review,0.39,Condensation obscures the alcohol content,4380
+DEMO-008,2026-08-18T11:36:00-07:00,COLA-2026-10428,copper-finch-ipa.png,needs_review,net_contents,12 fl. oz.,12 fl. oz.,match,0.98,Net contents match,4380
+DEMO-008,2026-08-18T11:36:00-07:00,COLA-2026-10428,copper-finch-ipa.png,needs_review,bottler_name_address,Copper Finch Brewing Richmond VA,Copper Finch Brewing Richmond VA,match,0.95,Brewer name and address match,4380
+DEMO-008,2026-08-18T11:36:00-07:00,COLA-2026-10428,copper-finch-ipa.png,needs_review,country_of_origin,Not applicable (domestic product),,match,0.97,No import origin was expected or observed,4380
+DEMO-008,2026-08-18T11:36:00-07:00,COLA-2026-10428,copper-finch-ipa.png,needs_review,government_warning,Required government warning wording,Required government warning wording,match,0.93,Required warning text and heading were detected,4380
+DEMO-009,2026-08-18T12:02:00-07:00,COLA-2026-10429,sierra-azul-mezcal.png,mismatch,brand_name,SIERRA AZUL,SIERRA AZUL,match,0.99,Brand name matches after normalization,3515
+DEMO-009,2026-08-18T12:02:00-07:00,COLA-2026-10429,sierra-azul-mezcal.png,mismatch,class_type,Mezcal Artesanal,Mezcal Artesanal,match,0.98,Class or type matches,3515
+DEMO-009,2026-08-18T12:02:00-07:00,COLA-2026-10429,sierra-azul-mezcal.png,mismatch,alcohol_content,45% Alc./Vol. (90 Proof),45% Alc./Vol. (90 Proof),match,0.99,Alcohol content and proof are consistent,3515
+DEMO-009,2026-08-18T12:02:00-07:00,COLA-2026-10429,sierra-azul-mezcal.png,mismatch,net_contents,750 mL,750 mL,match,0.99,Net contents match,3515
+DEMO-009,2026-08-18T12:02:00-07:00,COLA-2026-10429,sierra-azul-mezcal.png,mismatch,bottler_name_address,Imported by Sierra Azul Imports Austin TX,Imported by Sierra Azul Imports Austin TX,match,0.96,Importer name and address match,3515
+DEMO-009,2026-08-18T12:02:00-07:00,COLA-2026-10429,sierra-azul-mezcal.png,mismatch,country_of_origin,Mexico,Guatemala,mismatch,0.97,Observed country of origin differs from the application,3515
+DEMO-009,2026-08-18T12:02:00-07:00,COLA-2026-10429,sierra-azul-mezcal.png,mismatch,government_warning,Required government warning wording,Required government warning wording,match,0.96,Required warning text and heading were detected,3515
+DEMO-010,2026-08-18T12:28:00-07:00,COLA-2026-10430,red-cedar-rye.png,match,brand_name,RED CEDAR,RED CEDAR,match,0.99,Brand name matches after normalization,3050
+DEMO-010,2026-08-18T12:28:00-07:00,COLA-2026-10430,red-cedar-rye.png,match,class_type,Straight Rye Whiskey,Straight Rye Whiskey,match,0.98,Class or type matches,3050
+DEMO-010,2026-08-18T12:28:00-07:00,COLA-2026-10430,red-cedar-rye.png,match,alcohol_content,46% Alc./Vol. (92 Proof),46% Alc./Vol. (92 Proof),match,0.99,Alcohol content and proof are consistent,3050
+DEMO-010,2026-08-18T12:28:00-07:00,COLA-2026-10430,red-cedar-rye.png,match,net_contents,750 mL,750 mL,match,0.99,Net contents match,3050
+DEMO-010,2026-08-18T12:28:00-07:00,COLA-2026-10430,red-cedar-rye.png,match,bottler_name_address,Red Cedar Distilling Traverse City MI,Red Cedar Distilling Traverse City MI,match,0.97,Bottler name and address match,3050
+DEMO-010,2026-08-18T12:28:00-07:00,COLA-2026-10430,red-cedar-rye.png,match,country_of_origin,Not applicable (domestic product),,match,0.98,No import origin was expected or observed,3050
+DEMO-010,2026-08-18T12:28:00-07:00,COLA-2026-10430,red-cedar-rye.png,match,government_warning,Required government warning wording,Required government warning wording,match,0.97,Required warning text and heading were detected,3050
+DEMO-011,2026-08-18T13:03:00-07:00,COLA-2026-10431,orchard-gate-cider.png,needs_review,brand_name,ORCHARD GATE,ORCHARD GATE,match,0.99,Brand name matches after normalization,4210
+DEMO-011,2026-08-18T13:03:00-07:00,COLA-2026-10431,orchard-gate-cider.png,needs_review,class_type,Dry Hard Cider,Dry Hard Cider,match,0.98,Class or type matches,4210
+DEMO-011,2026-08-18T13:03:00-07:00,COLA-2026-10431,orchard-gate-cider.png,needs_review,alcohol_content,7% Alc./Vol.,7% Alc./Vol.,match,0.98,Alcohol content matches,4210
+DEMO-011,2026-08-18T13:03:00-07:00,COLA-2026-10431,orchard-gate-cider.png,needs_review,net_contents,500 mL,500 mL,match,0.99,Net contents match,4210
+DEMO-011,2026-08-18T13:03:00-07:00,COLA-2026-10431,orchard-gate-cider.png,needs_review,bottler_name_address,Orchard Gate Cider Works Ithaca NY,Orchard Gate Cider Works Ithaca NY,match,0.96,Producer name and address match,4210
+DEMO-011,2026-08-18T13:03:00-07:00,COLA-2026-10431,orchard-gate-cider.png,needs_review,country_of_origin,Not applicable (domestic product),,match,0.97,No import origin was expected or observed,4210
+DEMO-011,2026-08-18T13:03:00-07:00,COLA-2026-10431,orchard-gate-cider.png,needs_review,government_warning,Required government warning wording,GOVERNMENT WARNING text partially obscured,needs_review,0.48,The complete warning wording cannot be assessed reliably,4210
+DEMO-012,2026-08-18T13:40:00-07:00,COLA-2026-10432,atlantic-reserve-rum.png,mismatch,brand_name,ATLANTIC RESERVE,ATLANTIC RESERVE,match,0.99,Brand name matches after normalization,3330
+DEMO-012,2026-08-18T13:40:00-07:00,COLA-2026-10432,atlantic-reserve-rum.png,mismatch,class_type,Aged Rum,Aged Rum,match,0.98,Class or type matches,3330
+DEMO-012,2026-08-18T13:40:00-07:00,COLA-2026-10432,atlantic-reserve-rum.png,mismatch,alcohol_content,40% Alc./Vol. (80 Proof),40% Alc./Vol. (80 Proof),match,0.99,Alcohol content and proof are consistent,3330
+DEMO-012,2026-08-18T13:40:00-07:00,COLA-2026-10432,atlantic-reserve-rum.png,mismatch,net_contents,750 mL,750 mL,match,0.99,Net contents match,3330
+DEMO-012,2026-08-18T13:40:00-07:00,COLA-2026-10432,atlantic-reserve-rum.png,mismatch,bottler_name_address,Imported by Atlantic Spirits Miami FL,Imported by Atlantic Spirits Tampa FL,mismatch,0.97,Observed importer address differs from the application,3330
+DEMO-012,2026-08-18T13:40:00-07:00,COLA-2026-10432,atlantic-reserve-rum.png,mismatch,country_of_origin,Barbados,Barbados,match,0.98,Country of origin matches,3330
+DEMO-012,2026-08-18T13:40:00-07:00,COLA-2026-10432,atlantic-reserve-rum.png,mismatch,government_warning,Required government warning wording,Required government warning wording,match,0.96,Required warning text and heading were detected,3330

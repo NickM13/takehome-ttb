@@ -66,7 +66,7 @@ The README leaves some details open. Until the product owner says otherwise, use
 - Common raster image formats are sufficient for the first vertical slice. PDF support is optional.
 - One application-value record maps to one uploaded label image. A batch contains up to 10 such records in selection order.
 - Uploaded files, extracted text, and verification results are request-scoped and ephemeral.
-- Six complete synthetic reviews from `public/sample-reviews.csv` preload the backlog. Newly completed reviews are prepended in browser memory and disappear on refresh.
+- Twelve complete synthetic reviews from `public/sample-reviews.csv` preload the backlog and display 10 at a time. Newly completed reviews are prepended in browser memory and disappear on refresh.
 - Successful results are shown in a request-scoped on-page comparison and can be downloaded as a CSV. Backlog items are reopenable, show a separate final human decision of `approved`, `rejected`, or pending, and keep reviewer annotations in browser memory only; no database is required.
 - The demo may use synthetic labels and non-sensitive data.
 - The user remains the final decision-maker whenever the image is unreadable, extraction confidence is low, or a regulatory rule requires judgment.

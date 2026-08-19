@@ -15,12 +15,13 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-The review backlog loads six complete synthetic examples from
+The review backlog loads 12 complete synthetic examples from
 `public/sample-reviews.csv` as soon as the page opens. Select **Open review** on
 any row to inspect its seven field comparisons. Successful live reviews are
 prepended to that list in browser memory. Refreshing the page clears live
-entries, reviewer decisions, and reviewer notes, then reloads the six examples;
-there is no server-side review history or database in this MVP.
+entries, reviewer decisions, and reviewer notes, then reloads the 12 examples.
+The backlog displays 10 reviews per page; there is no server-side review history
+or database in this MVP.
 
 Every field accepts a reviewer note. An AI result of `needs_review` also accepts
 an independent reviewer disposition of `approved` or `rejected`. The AI status

@@ -1,6 +1,17 @@
 const form = document.querySelector("#verification-form");
+const mainContent = document.querySelector("#main-content");
+const introSection = document.querySelector("#intro-section");
+const backlogSection = document.querySelector("#backlog-section");
+const backlogTitle = document.querySelector("#backlog-title");
 const submissionSection = document.querySelector("#submission-section");
 const formTitle = document.querySelector("#form-title");
+const reviewNote = document.querySelector("#review-note");
+const startVerificationButton = document.querySelector(
+  "#start-verification-button",
+);
+const backFromVerificationButton = document.querySelector(
+  "#back-from-verification-button",
+);
 const fileInput = document.querySelector("#label");
 const sampleSelect = document.querySelector("#sample-label");
 const fileName = document.querySelector("#file-name");
@@ -19,6 +30,14 @@ const backlogMessage = document.querySelector("#backlog-message");
 const selectAllReviews = document.querySelector("#select-all-reviews");
 const bulkReviewButton = document.querySelector("#bulk-review-button");
 const bulkSelectionSummary = document.querySelector("#bulk-selection-summary");
+const backlogPagination = document.querySelector("#backlog-pagination");
+const previousBacklogPageButton = document.querySelector(
+  "#previous-backlog-page-button",
+);
+const nextBacklogPageButton = document.querySelector(
+  "#next-backlog-page-button",
+);
+const backlogPageStatus = document.querySelector("#backlog-page-status");
 const resultsSection = document.querySelector("#results-section");
 const resultsAnnouncement = document.querySelector("#results-announcement");
 const resultsTitle = document.querySelector("#results-title");
@@ -41,11 +60,16 @@ const reviewPageStatus = document.querySelector("#review-page-status");
 const resultsBody = document.querySelector("#results-body");
 const downloadButton = document.querySelector("#download-button");
 const reviewAnotherButton = document.querySelector("#review-another-button");
+const backToBacklogTopButton = document.querySelector(
+  "#back-to-backlog-top-button",
+);
+const backToBacklogButton = document.querySelector("#back-to-backlog-button");
 const reducedMotionQuery = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 );
 
 const MAX_BATCH_SIZE = 10;
+const BACKLOG_PAGE_SIZE = 10;
 const fieldLabels = {
   brand_name: "Brand name",
   class_type: "Class or type",
@@ -166,6 +190,7 @@ let activeReview = null;
 let previewUrls = [];
 let sessionReviewImageUrls = [];
 let backlogReviews = [];
+let backlogPageIndex = 0;
 let selectedSampleFile = null;
 const selectedBacklogReviewIds = new Set();
 
@@ -180,8 +205,55 @@ function preferredScrollBehavior() {
   return reducedMotionQuery.matches ? "auto" : "smooth";
 }
 
+function focusView(title, section) {
+  title.focus({ preventScroll: true });
+  section.scrollIntoView({
+    behavior: preferredScrollBehavior(),
+    block: "start",
+  });
+}
+
+function showBacklogView() {
+  introSection.hidden = false;
+  providerNotice.hidden = false;
+  backlogSection.hidden = false;
+  submissionSection.hidden = true;
+  resultsSection.hidden = true;
+  reviewNote.hidden = false;
+  activeReview = null;
+  focusView(backlogTitle, backlogSection);
+}
+
+function showVerificationView() {
+  introSection.hidden = true;
+  providerNotice.hidden = true;
+  backlogSection.hidden = true;
+  submissionSection.hidden = false;
+  resultsSection.hidden = true;
+  reviewNote.hidden = true;
+  focusView(formTitle, mainContent);
+}
+
+function showReviewView() {
+  introSection.hidden = true;
+  providerNotice.hidden = true;
+  backlogSection.hidden = true;
+  submissionSection.hidden = true;
+  resultsSection.hidden = false;
+  reviewNote.hidden = true;
+  focusView(resultsTitle, mainContent);
+}
+
+function startNewVerification() {
+  activeReview = null;
+  clearSelection();
+  setMessage("");
+  showVerificationView();
+}
+
 function setLoading(isLoading, labelCount = 1) {
   submitButton.disabled = isLoading;
+  backFromVerificationButton.disabled = isLoading;
   form.setAttribute("aria-busy", String(isLoading));
   submitButton.classList.toggle("loading", isLoading);
   buttonLabel.textContent = isLoading
@@ -341,8 +413,25 @@ function renderBacklog() {
     }
   }
   backlogCount.textContent = `${backlogReviews.length} review${backlogReviews.length === 1 ? "" : "s"}`;
+  const pageCount = Math.max(
+    1,
+    Math.ceil(backlogReviews.length / BACKLOG_PAGE_SIZE),
+  );
+  backlogPageIndex = Math.min(Math.max(backlogPageIndex, 0), pageCount - 1);
+  const pageStart = backlogPageIndex * BACKLOG_PAGE_SIZE;
+  const pageEnd = Math.min(
+    pageStart + BACKLOG_PAGE_SIZE,
+    backlogReviews.length,
+  );
+  const firstVisibleReview = backlogReviews.length === 0 ? 0 : pageStart + 1;
+  const visibleReviews = backlogReviews.slice(pageStart, pageEnd);
 
-  for (const review of backlogReviews) {
+  backlogPagination.hidden = pageCount <= 1;
+  previousBacklogPageButton.disabled = backlogPageIndex === 0;
+  nextBacklogPageButton.disabled = backlogPageIndex === pageCount - 1;
+  backlogPageStatus.textContent = `Page ${backlogPageIndex + 1} of ${pageCount}. Showing ${firstVisibleReview} through ${pageEnd} of ${backlogReviews.length} reviews.`;
+
+  for (const review of visibleReviews) {
     const row = document.createElement("tr");
     row.classList.toggle("live-review", !review.isDemo);
 
@@ -462,10 +551,10 @@ async function loadSampleBacklog() {
     );
 
     if (
-      samples.length !== 6 ||
+      samples.length !== 12 ||
       samples.some(({ result }) => result.fields.length !== 7)
     ) {
-      throw new Error("The sample backlog must contain six complete reviews");
+      throw new Error("The sample backlog must contain 12 complete reviews");
     }
     backlogReviews = [
       ...backlogReviews.filter(({ isDemo }) => !isDemo),
@@ -503,6 +592,7 @@ function addResultsToBacklog(results, annotations, reviewDecisions, imageUrls) {
   });
 
   backlogReviews = [...completedReviews, ...backlogReviews];
+  backlogPageIndex = 0;
   renderBacklog();
   backlogMessage.hidden = false;
   backlogMessage.classList.remove("error");
@@ -814,6 +904,7 @@ function renderReviewDecisions(results, reviewDecisions, annotations) {
         reviewDecisions[decisionKey] = value;
         updateDecisionState();
         renderBacklog();
+        advanceAfterBatchDecision(reviewName, value);
       });
       decisionButtons.push({ button, value });
       buttons.append(button);
@@ -1079,6 +1170,23 @@ function renderActiveReviewPage(announce = false) {
   }
 }
 
+function advanceAfterBatchDecision(reviewName, decision) {
+  if (
+    !activeReview ||
+    activeReview.results.length <= 1 ||
+    activeReview.activeIndex >= activeReview.results.length - 1
+  ) {
+    return;
+  }
+
+  activeReview.activeIndex += 1;
+  renderActiveReviewPage();
+  const nextResult = activeReview.results[activeReview.activeIndex];
+  const decisionLabel = decision === "approved" ? "approved" : "rejected";
+  resultsAnnouncement.textContent = `${reviewName} was ${decisionLabel}. Moving to ${resultDisplayName(nextResult, activeReview.activeIndex)}, review ${activeReview.activeIndex + 1} of ${activeReview.results.length}.`;
+  focusView(resultsTitle, mainContent);
+}
+
 function renderResults(payload, options = {}) {
   const results = Array.isArray(payload?.results)
     ? payload.results
@@ -1122,14 +1230,8 @@ function renderResults(payload, options = {}) {
   }
   populateReviewPager();
   renderActiveReviewPage();
-  submissionSection.hidden = true;
-  resultsSection.hidden = false;
   resultsAnnouncement.textContent = `${resultsTitle.textContent} is ready. ${resultsSummaryText.textContent}`;
-  resultsTitle.focus({ preventScroll: true });
-  resultsSection.scrollIntoView({
-    behavior: preferredScrollBehavior(),
-    block: "start",
-  });
+  showReviewView();
 }
 
 function spreadsheetSafe(value) {
@@ -1261,6 +1363,11 @@ fileInput.addEventListener("change", () => {
   renderSelectedPreviews();
 });
 
+startVerificationButton.addEventListener("click", startNewVerification);
+backFromVerificationButton.addEventListener("click", showBacklogView);
+backToBacklogTopButton.addEventListener("click", showBacklogView);
+backToBacklogButton.addEventListener("click", showBacklogView);
+
 backlogBody.addEventListener("click", (event) => {
   const openButton = event.target.closest("[data-review-id]");
   if (!openButton) return;
@@ -1291,6 +1398,22 @@ selectAllReviews.addEventListener("change", () => {
       selectedBacklogReviewIds.add(review.reviewId);
     }
   }
+  renderBacklog();
+});
+
+previousBacklogPageButton.addEventListener("click", () => {
+  if (backlogPageIndex === 0) return;
+  backlogPageIndex -= 1;
+  renderBacklog();
+});
+
+nextBacklogPageButton.addEventListener("click", () => {
+  const lastPageIndex = Math.max(
+    0,
+    Math.ceil(backlogReviews.length / BACKLOG_PAGE_SIZE) - 1,
+  );
+  if (backlogPageIndex >= lastPageIndex) return;
+  backlogPageIndex += 1;
   renderBacklog();
 });
 
@@ -1354,18 +1477,7 @@ downloadButton.addEventListener("click", () => {
   setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
 });
 
-reviewAnotherButton.addEventListener("click", () => {
-  resultsSection.hidden = true;
-  submissionSection.hidden = false;
-  activeReview = null;
-  clearSelection();
-  setMessage("");
-  form.scrollIntoView({
-    behavior: preferredScrollBehavior(),
-    block: "start",
-  });
-  formTitle.focus({ preventScroll: true });
-});
+reviewAnotherButton.addEventListener("click", startNewVerification);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();

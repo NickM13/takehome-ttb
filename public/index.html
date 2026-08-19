@@ -25,7 +25,7 @@
     </header>
 
     <main id="main-content" tabindex="-1">
-      <section class="intro" aria-labelledby="intro-title">
+      <section id="intro-section" class="intro" aria-labelledby="intro-title">
         <div>
           <p class="eyebrow">Application-to-label review</p>
           <h2 id="intro-title">Check the routine fields in one clear step.</h2>
@@ -46,22 +46,29 @@
         Checking extraction service…
       </div>
 
-      <section class="card backlog" aria-labelledby="backlog-title">
+      <section
+        id="backlog-section"
+        class="card backlog"
+        aria-labelledby="backlog-title"
+      >
         <div class="backlog-heading">
           <div>
             <p class="step-label">Current queue</p>
-            <h2 id="backlog-title">Review backlog</h2>
+            <h2 id="backlog-title" tabindex="-1">Review backlog</h2>
             <p>
-              Six demo reviews are preloaded and can be opened below. Reviews
+              Twelve demo reviews are preloaded and can be opened below. Reviews
               completed in this browser are added to the top of the queue.
               Select two or more to review them together.
             </p>
           </div>
           <div class="backlog-heading-meta">
+            <button id="start-verification-button" type="button">
+              Start new verification
+            </button>
             <span id="backlog-count" class="backlog-count">Loading…</span>
             <label class="backlog-select-all" for="select-all-reviews">
               <input id="select-all-reviews" type="checkbox" disabled />
-              Select all
+              Select all reviews
             </label>
             <a href="/sample-reviews.csv" download>Download sample CSV</a>
           </div>
@@ -95,6 +102,35 @@
             <tbody id="backlog-body"></tbody>
           </table>
         </div>
+        <nav
+          id="backlog-pagination"
+          class="backlog-pagination"
+          aria-label="Review backlog pages"
+          hidden
+        >
+          <button
+            id="previous-backlog-page-button"
+            class="secondary-button"
+            type="button"
+            aria-controls="backlog-body"
+          >
+            Previous page
+          </button>
+          <p
+            id="backlog-page-status"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></p>
+          <button
+            id="next-backlog-page-button"
+            class="secondary-button"
+            type="button"
+            aria-controls="backlog-body"
+          >
+            Next page
+          </button>
+        </nav>
         <div class="backlog-bulk-actions">
           <p
             id="bulk-selection-summary"
@@ -123,13 +159,25 @@
         id="submission-section"
         class="card"
         aria-labelledby="form-title"
+        hidden
       >
         <div class="card-heading">
           <div>
             <p class="step-label">Single-label review</p>
             <h2 id="form-title" tabindex="-1">Application details</h2>
           </div>
-          <p><span aria-hidden="true">*</span> Required fields</p>
+          <div class="card-heading-actions">
+            <p class="required-fields-note">
+              <span aria-hidden="true">*</span> Required fields
+            </p>
+            <button
+              id="back-from-verification-button"
+              class="secondary-button"
+              type="button"
+            >
+              Back to review backlog
+            </button>
+          </div>
         </div>
 
         <form id="verification-form" enctype="multipart/form-data" novalidate>
@@ -361,7 +409,16 @@
             <p class="step-label">Review workspace</p>
             <h2 id="results-title" tabindex="-1">Label comparison</h2>
           </div>
-          <span id="overall-status" class="status-badge"></span>
+          <div class="results-heading-actions">
+            <span id="overall-status" class="status-badge"></span>
+            <button
+              id="back-to-backlog-top-button"
+              class="secondary-button"
+              type="button"
+            >
+              Back to review backlog
+            </button>
+          </div>
         </div>
 
         <div class="results-summary">
@@ -454,6 +511,13 @@
           </p>
           <div>
             <button
+              id="back-to-backlog-button"
+              class="secondary-button"
+              type="button"
+            >
+              Back to review backlog
+            </button>
+            <button
               id="review-another-button"
               class="secondary-button"
               type="button"
@@ -465,7 +529,11 @@
         </div>
       </section>
 
-      <aside class="review-note" aria-labelledby="review-note-title">
+      <aside
+        id="review-note"
+        class="review-note"
+        aria-labelledby="review-note-title"
+      >
         <div class="review-icon" aria-hidden="true">i</div>
         <div>
           <h2 id="review-note-title">

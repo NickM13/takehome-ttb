@@ -96,6 +96,18 @@ describe("static accessibility safeguards", () => {
     expect(clientScript).toContain('field.status !== "match"');
   });
 
+  it("pages the backlog at ten reviews while preserving selection", () => {
+    expect(html).toContain('aria-label="Review backlog pages"');
+    expect(html).toContain('id="backlog-page-status"');
+    expect(html).toContain('id="previous-backlog-page-button"');
+    expect(html).toContain('id="next-backlog-page-button"');
+    expect(clientScript).toContain("const BACKLOG_PAGE_SIZE = 10");
+    expect(clientScript).toContain("backlogReviews.slice(pageStart, pageEnd)");
+    expect(clientScript).toContain("selectedBacklogReviewIds.has(");
+    expect(clientScript).toContain("backlogPageIndex += 1");
+    expect(clientScript).toContain("backlogPageIndex -= 1");
+  });
+
   it("pages bulk reviews and presents the current label artwork", () => {
     expect(html).toContain('id="review-artwork-image"');
     expect(html).toContain('id="review-artwork-unavailable"');
@@ -107,6 +119,32 @@ describe("static accessibility safeguards", () => {
     expect(clientScript).toContain("renderReviewArtwork(");
     expect(clientScript).toContain("activeIndex: 0");
     expect(clientScript).toContain("{ sourceFiles: files }");
+  });
+
+  it("separates backlog, verification, and review into focused views", () => {
+    expect(html).toContain('id="backlog-section"');
+    expect(html).toContain('id="start-verification-button"');
+    expect(html).toContain('id="submission-section"');
+    expect(html).toMatch(/id="submission-section"[\s\S]*?hidden[\s\S]*?>/);
+    expect(html).toContain('id="back-from-verification-button"');
+    expect(html).toContain('id="back-to-backlog-top-button"');
+    expect(html).toContain('id="back-to-backlog-button"');
+    expect(clientScript).toContain("function showBacklogView()");
+    expect(clientScript).toContain("function showVerificationView()");
+    expect(clientScript).toContain("function showReviewView()");
+    expect(clientScript).toContain("focusView(backlogTitle, backlogSection)");
+    expect(clientScript).toContain("focusView(formTitle, mainContent)");
+    expect(clientScript).toContain("focusView(resultsTitle, mainContent)");
+  });
+
+  it("advances to the next application after a batch decision", () => {
+    expect(clientScript).toContain("function advanceAfterBatchDecision(");
+    expect(clientScript).toContain("activeReview.results.length <= 1");
+    expect(clientScript).toContain("activeReview.activeIndex += 1");
+    expect(clientScript).toContain(
+      "advanceAfterBatchDecision(reviewName, value)",
+    );
+    expect(clientScript).toContain("Moving to ${resultDisplayName(");
   });
 
   it("retains visible focus and reduced-motion behavior", () => {
