@@ -17,7 +17,9 @@ Open `http://localhost:3000`.
 
 The review backlog loads 12 complete synthetic examples from
 `public/sample-reviews.csv` as soon as the page opens. Select **Open review** on
-any row to inspect its seven field comparisons. Successful live reviews are
+any row to inspect its seven field comparisons. The review workspace initially
+shows those fields in a compact table with separate AI and reviewer statuses;
+select a field name to expand its evidence, reviewer decision, and note. Successful live reviews are
 prepended to that list in browser memory. Refreshing the page clears live
 entries, reviewer decisions, and reviewer notes, then reloads the 12 examples.
 The backlog displays 10 reviews per page; there is no server-side review history

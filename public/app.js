@@ -1002,7 +1002,33 @@ function renderReviewDecisions(results, reviewDecisions, annotations) {
   });
 }
 
-function appendReviewerControls(cell, result, field, annotations, rowIndex) {
+function updateReviewerFieldStatus(indicator, field, annotation) {
+  if (!fieldRequiresDecision(field)) {
+    indicator.className = "field-status reviewer-status-not-required";
+    indicator.textContent = "Not required";
+    return;
+  }
+
+  if (annotation.decision === "approved") {
+    indicator.className = "field-status status-match";
+    indicator.textContent = "Approved";
+  } else if (annotation.decision === "rejected") {
+    indicator.className = "field-status status-mismatch";
+    indicator.textContent = "Rejected";
+  } else {
+    indicator.className = "field-status status-needs-review";
+    indicator.textContent = "Needs review";
+  }
+}
+
+function appendReviewerControls(
+  cell,
+  result,
+  field,
+  annotations,
+  rowIndex,
+  reviewerStatusIndicator,
+) {
   const key = annotationKey(result, field);
   const annotation = annotations[key] ?? { decision: "", note: "" };
   annotations[key] = annotation;
@@ -1037,6 +1063,7 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
     }
     decision.addEventListener("change", () => {
       annotation.decision = decision.value;
+      updateReviewerFieldStatus(reviewerStatusIndicator, field, annotation);
       updateReviewerSummary([result], annotations);
       renderReviewDecisions(
         [result],
@@ -1090,33 +1117,61 @@ function appendResultValue(list, label, content) {
   return description;
 }
 
-function createFieldResultCard(
-  result,
-  field,
-  annotations,
-  fieldIndex,
-  headingLevel,
-) {
-  const card = document.createElement("article");
-  card.className = `result-card result-card-${field.status.replaceAll("_", "-")}`;
-  card.setAttribute("role", "listitem");
+function createFieldResultRows(result, field, annotations, fieldIndex) {
+  const fieldName = fieldLabels[field.field] ?? field.field;
+  const summaryRow = document.createElement("tr");
+  summaryRow.className = `field-summary-row field-summary-row-${field.status.replaceAll("_", "-")}`;
 
-  const headingId = `result-field-${fieldIndex}`;
-  const heading = document.createElement(headingLevel);
-  heading.id = headingId;
-  heading.textContent = fieldLabels[field.field] ?? field.field;
-  card.setAttribute("aria-labelledby", headingId);
+  const fieldCell = document.createElement("th");
+  fieldCell.scope = "row";
+  const detailId = `result-field-details-${fieldIndex}`;
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "field-detail-toggle";
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.setAttribute("aria-controls", detailId);
+  toggle.setAttribute("aria-label", `View details for ${fieldName}`);
+  const toggleArrow = document.createElement("span");
+  toggleArrow.className = "field-toggle-arrow";
+  toggleArrow.setAttribute("aria-hidden", "true");
+  const toggleName = document.createElement("span");
+  toggleName.className = "field-toggle-name";
+  toggleName.textContent = fieldName;
+  const toggleHint = document.createElement("span");
+  toggleHint.className = "field-toggle-hint";
+  toggleHint.textContent = "View details";
+  toggle.append(toggleArrow, toggleName, toggleHint);
+  fieldCell.append(toggle);
 
+  const comparisonCell = document.createElement("td");
+  comparisonCell.dataset.label = "AI comparison";
   const comparison = document.createElement("span");
   comparison.className = `field-status ${statusClass(field.status)}`;
   comparison.textContent = statusLabels[field.status] ?? "Needs review";
+  comparisonCell.append(comparison);
 
-  const cardHeading = document.createElement("div");
-  cardHeading.className = "result-card-heading";
-  cardHeading.append(heading, comparison);
+  const reviewerCell = document.createElement("td");
+  reviewerCell.dataset.label = "Reviewer status";
+  const reviewerStatusIndicator = document.createElement("span");
+  const annotation = annotations[annotationKey(result, field)] ?? {
+    decision: "",
+    note: "",
+  };
+  annotations[annotationKey(result, field)] = annotation;
+  updateReviewerFieldStatus(reviewerStatusIndicator, field, annotation);
+  reviewerCell.append(reviewerStatusIndicator);
+  summaryRow.append(fieldCell, comparisonCell, reviewerCell);
 
+  const detailRow = document.createElement("tr");
+  detailRow.id = detailId;
+  detailRow.className = "field-details-row";
+  detailRow.hidden = true;
+  const detailCell = document.createElement("td");
+  detailCell.colSpan = 3;
+  const detailPanel = document.createElement("div");
+  detailPanel.className = "field-details-panel";
   const values = document.createElement("dl");
-  values.className = "result-card-values";
+  values.className = "result-detail-values";
   appendResultValue(values, "Entered value", field.expectedValue);
 
   const observedContent = document.createElement("span");
@@ -1151,10 +1206,26 @@ function createFieldResultCard(
     field,
     annotations,
     fieldIndex,
+    reviewerStatusIndicator,
   );
 
-  card.append(cardHeading, values, explanation, reviewerAction);
-  return card;
+  detailPanel.append(values, explanation, reviewerAction);
+  detailCell.append(detailPanel);
+  detailRow.append(detailCell);
+
+  toggle.addEventListener("click", () => {
+    const willExpand = detailRow.hidden;
+    detailRow.hidden = !willExpand;
+    summaryRow.classList.toggle("field-summary-row-expanded", willExpand);
+    toggle.setAttribute("aria-expanded", String(willExpand));
+    toggle.setAttribute(
+      "aria-label",
+      `${willExpand ? "Hide" : "View"} details for ${fieldName}`,
+    );
+    toggleHint.textContent = willExpand ? "Hide details" : "View details";
+  });
+
+  return [summaryRow, detailRow];
 }
 
 function resultDisplayName(result, index) {
@@ -1208,19 +1279,28 @@ function renderActiveReviewPage(announce = false) {
   renderReviewArtwork(result, activeReview.imageUrls[index]);
 
   resultsBody.replaceChildren();
-  const fieldList = document.createElement("div");
-  fieldList.className = "result-field-grid";
-  fieldList.setAttribute("role", "list");
-  fieldList.setAttribute(
-    "aria-label",
-    `Verification fields for ${resultDisplayName(result, index)}`,
-  );
+  const fieldTable = document.createElement("table");
+  fieldTable.className = "review-fields-table";
+  const caption = document.createElement("caption");
+  caption.className = "visually-hidden";
+  caption.textContent = `Verification fields for ${resultDisplayName(result, index)}`;
+  const tableHead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  for (const heading of ["Field", "AI comparison", "Reviewer status"]) {
+    const header = document.createElement("th");
+    header.scope = "col";
+    header.textContent = heading;
+    headerRow.append(header);
+  }
+  tableHead.append(headerRow);
+  const tableBody = document.createElement("tbody");
   result.fields.forEach((field, fieldIndex) => {
-    fieldList.append(
-      createFieldResultCard(result, field, annotations, fieldIndex, "h3"),
+    tableBody.append(
+      ...createFieldResultRows(result, field, annotations, fieldIndex),
     );
   });
-  resultsBody.append(fieldList);
+  fieldTable.append(caption, tableHead, tableBody);
+  resultsBody.append(fieldTable);
 
   reviewPageSelect.value = String(index);
   previousReviewButton.disabled = index === 0;
@@ -1285,7 +1365,7 @@ function renderResults(payload, options = {}) {
   };
   resultsTitle.textContent =
     options.title ??
-    (results.length === 1 ? "Label comparison" : "Batch comparison");
+    (results.length === 1 ? "Application review" : "Batch application review");
 
   if (options.addToBacklog !== false) {
     addResultsToBacklog(results, annotations, reviewDecisions, imageUrls);
@@ -1411,7 +1491,7 @@ function openBacklogReviews(reviews) {
       addToBacklog: false,
       annotations,
       reviewDecisions,
-      title: isBulkReview ? "Bulk backlog review" : "Backlog review",
+      title: isBulkReview ? "Bulk application review" : "Application review",
       imageUrls: reviews.map(({ imageUrl }) => imageUrl || ""),
     },
   );

@@ -116,7 +116,7 @@ describe("application", () => {
   it("serves the accessible upload page", async () => {
     const response = await request(buildApp()).get("/").expect(200);
     expect(response.text).toContain("Alcohol Label Verification");
-    expect(response.text).toContain("Label comparison");
+    expect(response.text).toContain("Application review");
     expect(response.text).toContain("Download CSV");
     expect(response.text).toContain("Review backlog");
     expect(response.text).toContain('id="backlog-body"');

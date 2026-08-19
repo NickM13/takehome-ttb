@@ -66,7 +66,9 @@ describe("static accessibility safeguards", () => {
       'decisionContext.className = "visually-hidden"',
     );
     expect(clientScript).toContain('noteContext.className = "visually-hidden"');
-    expect(clientScript).toContain('card.setAttribute("role", "listitem")');
+    expect(clientScript).toContain(
+      'fieldTable.className = "review-fields-table"',
+    );
   });
 
   it("uses a focused review mode with final decisions after the evidence", () => {
@@ -136,6 +138,40 @@ describe("static accessibility safeguards", () => {
     expect(clientScript).toContain("renderReviewArtwork(");
     expect(clientScript).toContain("activeIndex: 0");
     expect(clientScript).toContain("{ sourceFiles: files }");
+  });
+
+  it("uses an expandable field table with independent review status", () => {
+    expect(clientScript).toContain("function createFieldResultRows(");
+    expect(clientScript).toContain(
+      'toggle.setAttribute("aria-expanded", "false")',
+    );
+    expect(clientScript).toContain('toggle.setAttribute("aria-controls"');
+    expect(clientScript).toContain(
+      'toggleArrow.className = "field-toggle-arrow"',
+    );
+    expect(clientScript).toContain(
+      'toggleArrow.setAttribute("aria-hidden", "true")',
+    );
+    expect(clientScript).toContain(
+      'summaryRow.classList.toggle("field-summary-row-expanded", willExpand)',
+    );
+    expect(clientScript).toContain(
+      "updateReviewerFieldStatus(reviewerStatusIndicator, field, annotation)",
+    );
+    expect(clientScript).toContain(
+      "caption.textContent = `Verification fields for ${",
+    );
+    expect(clientScript).toContain('"AI comparison", "Reviewer status"');
+    expect(clientScript).toContain('"Bulk application review"');
+    expect(clientScript).toContain('"Batch application review"');
+    expect(clientScript).toContain('"Application review"');
+    expect(css).toContain(".review-fields-table");
+    expect(css).toContain(".field-summary-row > td::before");
+    expect(css).toContain(
+      '.field-detail-toggle[aria-expanded="true"] .field-toggle-arrow',
+    );
+    expect(css).toContain(".field-summary-row-expanded > th");
+    expect(css).toContain("border-bottom: 4px solid var(--blue-700)");
   });
 
   it("separates backlog, verification, and review into focused views", () => {
