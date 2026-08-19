@@ -66,8 +66,8 @@ The README leaves some details open. Until the product owner says otherwise, use
 - Common raster image formats are sufficient for the first vertical slice. PDF support is optional.
 - One application-value record maps to one uploaded label image. A batch contains up to 10 such records in selection order.
 - Uploaded files, extracted text, and verification results are request-scoped and ephemeral.
-- Twelve complete synthetic reviews from `public/sample-reviews.csv` preload the backlog and display 10 at a time. Newly completed reviews are prepended in browser memory and disappear on refresh.
-- Successful results are shown in a request-scoped on-page comparison and can be downloaded as a CSV. Backlog items are reopenable, show a separate final human decision of `approved`, `rejected`, or pending, and keep reviewer annotations in browser memory only; no database is required.
+- Twelve complete synthetic reviews from `public/sample-reviews.csv` preload the pending backlog and display 10 at a time. Newly verified reviews are prepended in browser memory and disappear on refresh. Reviews with a final human decision move into a separate completed table.
+- Successful results are shown in a request-scoped on-page comparison and can be downloaded as a CSV. Pending and completed items are reopenable, show a separate final human decision of `approved`, `rejected`, or pending, and keep reviewer annotations in browser memory only; no database is required.
 - The demo may use synthetic labels and non-sensitive data.
 - The user remains the final decision-maker whenever the image is unreadable, extraction confidence is low, or a regulatory rule requires judgment.
 
@@ -85,7 +85,7 @@ Do not turn missing data, model errors, or low confidence into a definitive mism
 
 Keep the automated field status separate from human adjudication. A reviewer may mark a `needs_review` field as `approved` or `rejected`, but that disposition must not overwrite the automated evidence or status. Allow a reviewer note on every field and include both annotation values in browser-downloaded CSV reports.
 
-Also keep one final human decision for each complete review. It may be `approved`, `rejected`, or pending and must be displayed separately from the aggregate AI status in the backlog and CSV export.
+Also keep one final human decision for each complete review. It may be `approved`, `rejected`, or pending and must be displayed separately from the aggregate AI status in the pending or completed table and CSV export.
 
 Each result should preserve useful evidence where available:
 
@@ -119,7 +119,7 @@ Before modifying the interface or user-facing content, read `docs/accessibility.
 - Use plain language: `Matches`, `Does not match`, and `Needs review` are preferable to model or OCR jargon.
 - Put the primary upload/verify action in the natural reading order and make it visually obvious.
 - Show progress immediately and prevent accidental duplicate submissions.
-- Show the repository-backed demo backlog on initial load and add completed reviews to its top without triggering an automatic download.
+- Show the repository-backed demo backlog on initial load, add newly verified reviews to its top, and move final decisions into the completed table without triggering an automatic download.
 - Show a thumbnail, filename, and size for every selected image before verification.
 - Preserve partial field results in the CSV if one field check fails; do not replace the entire review with a generic error.
 - Pair status colors with text and icons so color is never the only signal.

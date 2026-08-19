@@ -25,6 +25,8 @@ const selectionCount = document.querySelector("#selection-count");
 const batchFieldset = document.querySelector("#batch-fieldset");
 const batchApplicationList = document.querySelector("#batch-application-list");
 const backlogBody = document.querySelector("#backlog-body");
+const backlogTableWrap = document.querySelector("#backlog-table-wrap");
+const backlogEmpty = document.querySelector("#backlog-empty");
 const backlogCount = document.querySelector("#backlog-count");
 const backlogMessage = document.querySelector("#backlog-message");
 const selectAllReviews = document.querySelector("#select-all-reviews");
@@ -38,6 +40,13 @@ const nextBacklogPageButton = document.querySelector(
   "#next-backlog-page-button",
 );
 const backlogPageStatus = document.querySelector("#backlog-page-status");
+const completedReviewsSection = document.querySelector(
+  "#completed-reviews-section",
+);
+const completedReviewsBody = document.querySelector("#completed-reviews-body");
+const completedReviewsCount = document.querySelector(
+  "#completed-reviews-count",
+);
 const resultsSection = document.querySelector("#results-section");
 const resultsAnnouncement = document.querySelector("#results-announcement");
 const resultsTitle = document.querySelector("#results-title");
@@ -187,6 +196,7 @@ const batchFieldDefinitions = [
 ];
 
 let activeReview = null;
+let activeView = "backlog";
 let previewUrls = [];
 let sessionReviewImageUrls = [];
 let backlogReviews = [];
@@ -214,33 +224,39 @@ function focusView(title, section) {
 }
 
 function showBacklogView() {
+  activeView = "backlog";
   introSection.hidden = false;
   providerNotice.hidden = false;
   backlogSection.hidden = false;
   submissionSection.hidden = true;
   resultsSection.hidden = true;
   reviewNote.hidden = false;
+  completedReviewsSection.hidden = completedBacklogReviews().length === 0;
   activeReview = null;
   focusView(backlogTitle, backlogSection);
 }
 
 function showVerificationView() {
+  activeView = "verification";
   introSection.hidden = true;
   providerNotice.hidden = true;
   backlogSection.hidden = true;
   submissionSection.hidden = false;
   resultsSection.hidden = true;
   reviewNote.hidden = true;
+  completedReviewsSection.hidden = true;
   focusView(formTitle, mainContent);
 }
 
 function showReviewView() {
+  activeView = "review";
   introSection.hidden = true;
   providerNotice.hidden = true;
   backlogSection.hidden = true;
   submissionSection.hidden = true;
   resultsSection.hidden = false;
   reviewNote.hidden = true;
+  completedReviewsSection.hidden = true;
   focusView(resultsTitle, mainContent);
 }
 
@@ -345,6 +361,28 @@ function reviewKey(result) {
   return `${result.applicationId ?? ""}\u001f${result.sourceFile}`;
 }
 
+function finalDecisionFor(review) {
+  return review.reviewDecisions[reviewKey(review.result)] ?? "";
+}
+
+function pendingBacklogReviews() {
+  return backlogReviews.filter((review) => !finalDecisionFor(review));
+}
+
+function completedBacklogReviews() {
+  return backlogReviews
+    .filter((review) => Boolean(finalDecisionFor(review)))
+    .sort((left, right) => (right.decidedAt ?? 0) - (left.decidedAt ?? 0));
+}
+
+function recordDecisionTime(result) {
+  const resultKey = reviewKey(result);
+  const review = backlogReviews.find(
+    (candidate) => reviewKey(candidate.result) === resultKey,
+  );
+  if (review) review.decidedAt = Date.now();
+}
+
 function reviewDecisionStatus(result, reviewDecisions) {
   const decision = reviewDecisions[reviewKey(result)] ?? "";
   if (decision === "rejected") {
@@ -385,56 +423,30 @@ function createSessionArtworkUrl(file) {
   return imageUrl;
 }
 
-function updateBulkReviewControls() {
+function updateBulkReviewControls(pendingReviews = pendingBacklogReviews()) {
   const selectedCount = selectedBacklogReviewIds.size;
   bulkReviewButton.textContent = `Start selected reviews (${selectedCount})`;
   bulkReviewButton.disabled = selectedCount < 2;
   bulkSelectionSummary.textContent =
-    selectedCount === 0
-      ? "No reviews selected. Select at least two to start a bulk review."
-      : selectedCount === 1
-        ? "1 review selected. Select one more to start a bulk review."
-        : `${selectedCount} reviews selected and ready for bulk review.`;
-  selectAllReviews.disabled = backlogReviews.length === 0;
+    pendingReviews.length === 0
+      ? "No applications are waiting for review."
+      : selectedCount === 0
+        ? "No reviews selected. Select at least two to start a bulk review."
+        : selectedCount === 1
+          ? "1 review selected. Select one more to start a bulk review."
+          : `${selectedCount} reviews selected and ready for bulk review.`;
+  selectAllReviews.disabled = pendingReviews.length === 0;
   selectAllReviews.checked =
-    backlogReviews.length > 0 && selectedCount === backlogReviews.length;
+    pendingReviews.length > 0 && selectedCount === pendingReviews.length;
   selectAllReviews.indeterminate =
-    selectedCount > 0 && selectedCount < backlogReviews.length;
+    selectedCount > 0 && selectedCount < pendingReviews.length;
 }
 
-function renderBacklog() {
-  backlogBody.replaceChildren();
-  const availableReviewIds = new Set(
-    backlogReviews.map(({ reviewId }) => reviewId),
-  );
-  for (const reviewId of selectedBacklogReviewIds) {
-    if (!availableReviewIds.has(reviewId)) {
-      selectedBacklogReviewIds.delete(reviewId);
-    }
-  }
-  backlogCount.textContent = `${backlogReviews.length} review${backlogReviews.length === 1 ? "" : "s"}`;
-  const pageCount = Math.max(
-    1,
-    Math.ceil(backlogReviews.length / BACKLOG_PAGE_SIZE),
-  );
-  backlogPageIndex = Math.min(Math.max(backlogPageIndex, 0), pageCount - 1);
-  const pageStart = backlogPageIndex * BACKLOG_PAGE_SIZE;
-  const pageEnd = Math.min(
-    pageStart + BACKLOG_PAGE_SIZE,
-    backlogReviews.length,
-  );
-  const firstVisibleReview = backlogReviews.length === 0 ? 0 : pageStart + 1;
-  const visibleReviews = backlogReviews.slice(pageStart, pageEnd);
+function createBacklogRow(review, selectable) {
+  const row = document.createElement("tr");
+  row.classList.toggle("live-review", !review.isDemo);
 
-  backlogPagination.hidden = pageCount <= 1;
-  previousBacklogPageButton.disabled = backlogPageIndex === 0;
-  nextBacklogPageButton.disabled = backlogPageIndex === pageCount - 1;
-  backlogPageStatus.textContent = `Page ${backlogPageIndex + 1} of ${pageCount}. Showing ${firstVisibleReview} through ${pageEnd} of ${backlogReviews.length} reviews.`;
-
-  for (const review of visibleReviews) {
-    const row = document.createElement("tr");
-    row.classList.toggle("live-review", !review.isDemo);
-
+  if (selectable) {
     const selectionCell = appendBacklogCell(row, "Select", "");
     selectionCell.className = "backlog-selection-cell";
     const checkbox = document.createElement("input");
@@ -446,50 +458,99 @@ function renderBacklog() {
       `Select review ${reviewDisplayName(review)}`,
     );
     selectionCell.append(checkbox);
+  }
 
-    appendBacklogCell(
-      row,
-      "Application",
-      review.applicationId || "Not provided",
-      true,
-    );
-    appendBacklogCell(row, "Brand", review.brandName || "Not detected");
+  appendBacklogCell(
+    row,
+    "Application",
+    review.applicationId || "Not provided",
+    true,
+  );
+  appendBacklogCell(row, "Brand", review.brandName || "Not detected");
+  if (selectable) {
     appendBacklogCell(
       row,
       "Received",
       formatReceivedAt(review.submittedAt, review.isDemo),
     );
-    const statusCell = appendBacklogCell(row, "AI status", "");
-    const status = document.createElement("span");
-    status.className = `field-status ${statusClass(review.overallStatus)}`;
-    status.textContent = statusLabels[review.overallStatus];
-    statusCell.append(status);
+  }
+  const statusCell = appendBacklogCell(row, "AI status", "");
+  const status = document.createElement("span");
+  status.className = `field-status ${statusClass(review.overallStatus)}`;
+  status.textContent = statusLabels[review.overallStatus];
+  statusCell.append(status);
 
-    const progress = reviewDecisionStatus(
-      review.result,
-      review.reviewDecisions,
-    );
-    const reviewerCell = appendBacklogCell(row, "Reviewer decision", "");
-    const reviewerStatus = document.createElement("span");
-    reviewerStatus.className = `field-status ${progress.className}`;
-    reviewerStatus.textContent = progress.label;
-    reviewerCell.append(reviewerStatus);
+  const progress = reviewDecisionStatus(review.result, review.reviewDecisions);
+  const reviewerCell = appendBacklogCell(
+    row,
+    selectable ? "Reviewer decision" : "Final decision",
+    "",
+  );
+  const reviewerStatus = document.createElement("span");
+  reviewerStatus.className = `field-status ${progress.className}`;
+  reviewerStatus.textContent = progress.label;
+  reviewerCell.append(reviewerStatus);
 
-    const actionCell = appendBacklogCell(row, "Action", "");
-    const openButton = document.createElement("button");
-    openButton.type = "button";
-    openButton.className = "secondary-button backlog-open-button";
-    openButton.dataset.reviewId = review.reviewId;
-    openButton.textContent = "Open review";
-    openButton.setAttribute(
-      "aria-label",
-      `Open review for ${reviewDisplayName(review)}`,
-    );
-    actionCell.append(openButton);
-    backlogBody.append(row);
+  const actionCell = appendBacklogCell(row, "Action", "");
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.className = "secondary-button backlog-open-button";
+  openButton.dataset.reviewId = review.reviewId;
+  openButton.textContent = "Open review";
+  openButton.setAttribute(
+    "aria-label",
+    `Open review for ${reviewDisplayName(review)}`,
+  );
+  actionCell.append(openButton);
+  return row;
+}
+
+function renderBacklog() {
+  backlogBody.replaceChildren();
+  completedReviewsBody.replaceChildren();
+  const pendingReviews = pendingBacklogReviews();
+  const completedReviews = completedBacklogReviews();
+  const availableReviewIds = new Set(
+    pendingReviews.map(({ reviewId }) => reviewId),
+  );
+  for (const reviewId of selectedBacklogReviewIds) {
+    if (!availableReviewIds.has(reviewId)) {
+      selectedBacklogReviewIds.delete(reviewId);
+    }
+  }
+  backlogCount.textContent = `${pendingReviews.length} awaiting review`;
+  backlogTableWrap.hidden = pendingReviews.length === 0;
+  backlogEmpty.hidden = pendingReviews.length > 0;
+  const pageCount = Math.max(
+    1,
+    Math.ceil(pendingReviews.length / BACKLOG_PAGE_SIZE),
+  );
+  backlogPageIndex = Math.min(Math.max(backlogPageIndex, 0), pageCount - 1);
+  const pageStart = backlogPageIndex * BACKLOG_PAGE_SIZE;
+  const pageEnd = Math.min(
+    pageStart + BACKLOG_PAGE_SIZE,
+    pendingReviews.length,
+  );
+  const firstVisibleReview = pendingReviews.length === 0 ? 0 : pageStart + 1;
+  const visibleReviews = pendingReviews.slice(pageStart, pageEnd);
+
+  backlogPagination.hidden = pageCount <= 1 || pendingReviews.length === 0;
+  previousBacklogPageButton.disabled = backlogPageIndex === 0;
+  nextBacklogPageButton.disabled = backlogPageIndex === pageCount - 1;
+  backlogPageStatus.textContent = `Page ${backlogPageIndex + 1} of ${pageCount}. Showing ${firstVisibleReview} through ${pageEnd} of ${pendingReviews.length} reviews.`;
+
+  for (const review of visibleReviews) {
+    backlogBody.append(createBacklogRow(review, true));
   }
 
-  updateBulkReviewControls();
+  for (const review of completedReviews) {
+    completedReviewsBody.append(createBacklogRow(review, false));
+  }
+  completedReviewsCount.textContent = `${completedReviews.length} completed`;
+  completedReviewsSection.hidden =
+    activeView !== "backlog" || completedReviews.length === 0;
+
+  updateBulkReviewControls(pendingReviews);
 }
 
 async function loadSampleBacklog() {
@@ -902,6 +963,7 @@ function renderReviewDecisions(results, reviewDecisions, annotations) {
       button.setAttribute("aria-describedby", statusId);
       button.addEventListener("click", () => {
         reviewDecisions[decisionKey] = value;
+        recordDecisionTime(result);
         updateDecisionState();
         renderBacklog();
         advanceAfterBatchDecision(reviewName, value);
@@ -1368,7 +1430,7 @@ backFromVerificationButton.addEventListener("click", showBacklogView);
 backToBacklogTopButton.addEventListener("click", showBacklogView);
 backToBacklogButton.addEventListener("click", showBacklogView);
 
-backlogBody.addEventListener("click", (event) => {
+function openReviewFromTable(event) {
   const openButton = event.target.closest("[data-review-id]");
   if (!openButton) return;
 
@@ -1377,7 +1439,10 @@ backlogBody.addEventListener("click", (event) => {
   );
   if (!review) return;
   openBacklogReviews([review]);
-});
+}
+
+backlogBody.addEventListener("click", openReviewFromTable);
+completedReviewsBody.addEventListener("click", openReviewFromTable);
 
 backlogBody.addEventListener("change", (event) => {
   const checkbox = event.target.closest("[data-select-review-id]");
@@ -1394,7 +1459,7 @@ backlogBody.addEventListener("change", (event) => {
 selectAllReviews.addEventListener("change", () => {
   selectedBacklogReviewIds.clear();
   if (selectAllReviews.checked) {
-    for (const review of backlogReviews) {
+    for (const review of pendingBacklogReviews()) {
       selectedBacklogReviewIds.add(review.reviewId);
     }
   }
@@ -1410,7 +1475,7 @@ previousBacklogPageButton.addEventListener("click", () => {
 nextBacklogPageButton.addEventListener("click", () => {
   const lastPageIndex = Math.max(
     0,
-    Math.ceil(backlogReviews.length / BACKLOG_PAGE_SIZE) - 1,
+    Math.ceil(pendingBacklogReviews().length / BACKLOG_PAGE_SIZE) - 1,
   );
   if (backlogPageIndex >= lastPageIndex) return;
   backlogPageIndex += 1;

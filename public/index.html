@@ -56,9 +56,10 @@
             <p class="step-label">Current queue</p>
             <h2 id="backlog-title" tabindex="-1">Review backlog</h2>
             <p>
-              Twelve demo reviews are preloaded and can be opened below. Reviews
-              completed in this browser are added to the top of the queue.
-              Select two or more to review them together.
+              Twelve demo reviews are preloaded and can be opened below. New
+              verifications are added to the top of this queue; final decisions
+              move to the completed table. Select two or more to review them
+              together.
             </p>
           </div>
           <div class="backlog-heading-meta">
@@ -68,7 +69,7 @@
             <span id="backlog-count" class="backlog-count">Loading…</span>
             <label class="backlog-select-all" for="select-all-reviews">
               <input id="select-all-reviews" type="checkbox" disabled />
-              Select all reviews
+              Select all awaiting reviews
             </label>
             <a href="/sample-reviews.csv" download>Download sample CSV</a>
           </div>
@@ -83,7 +84,7 @@
           Loading sample reviews…
         </p>
 
-        <div class="backlog-table-wrap">
+        <div id="backlog-table-wrap" class="backlog-table-wrap">
           <table class="backlog-table">
             <caption class="visually-hidden">
               Reviews available in the current demonstration backlog
@@ -102,6 +103,9 @@
             <tbody id="backlog-body"></tbody>
           </table>
         </div>
+        <p id="backlog-empty" class="backlog-empty" hidden>
+          No applications are waiting for a final reviewer decision.
+        </p>
         <nav
           id="backlog-pagination"
           class="backlog-pagination"
@@ -153,6 +157,43 @@
           Demo rows reload from the repository. New reviews remain only for this
           browser session and are not stored on the server.
         </p>
+      </section>
+
+      <section
+        id="completed-reviews-section"
+        class="card completed-reviews"
+        aria-labelledby="completed-reviews-title"
+        hidden
+      >
+        <div class="backlog-heading">
+          <div>
+            <p class="step-label">Completed this session</p>
+            <h2 id="completed-reviews-title">Approved and rejected</h2>
+            <p>
+              Completed applications remain available for review and CSV export
+              until this page is refreshed.
+            </p>
+          </div>
+          <span id="completed-reviews-count" class="backlog-count"></span>
+        </div>
+        <div class="backlog-table-wrap">
+          <table class="backlog-table completed-reviews-table">
+            <caption class="visually-hidden">
+              Applications with a final reviewer decision in this browser
+              session
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Application</th>
+                <th scope="col">Brand</th>
+                <th scope="col">AI status</th>
+                <th scope="col">Final decision</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="completed-reviews-body"></tbody>
+          </table>
+        </div>
       </section>
 
       <section

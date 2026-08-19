@@ -26,9 +26,10 @@ or database in this MVP.
 Every field accepts a reviewer note. An AI result of `needs_review` also accepts
 an independent reviewer disposition of `approved` or `rejected`. The AI status
 is retained unchanged for auditability. Every complete review also has a final
-human decision of `approved` or `rejected`; this separate decision is shown in
-the backlog as soon as it is selected. **Download CSV** creates an annotated
-export with `review_decision`, field-level `reviewer_decision`, and
+human decision of `approved` or `rejected`. Pending applications remain in the
+review backlog; a final decision moves the application into the separate
+completed table. Both tables can reopen a review. **Download CSV** creates an
+annotated export with `review_decision`, field-level `reviewer_decision`, and
 `reviewer_note` columns from the review that is currently open.
 
 The **Label artwork** section also offers three official TTB sample labels. A

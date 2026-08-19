@@ -229,6 +229,10 @@ main {
   margin-bottom: 1.5rem;
 }
 
+.completed-reviews {
+  margin-bottom: 1.5rem;
+}
+
 .backlog-heading {
   display: flex;
   align-items: start;
@@ -349,6 +353,13 @@ main {
   background: var(--danger-bg);
 }
 
+.backlog-empty {
+  margin: 0;
+  padding: 1.5rem 2rem;
+  color: var(--muted);
+  text-align: center;
+}
+
 .backlog-table-wrap {
   overflow-x: auto;
   scrollbar-gutter: stable;
@@ -359,6 +370,10 @@ main {
   min-width: 940px;
   border-collapse: collapse;
   text-align: left;
+}
+
+.completed-reviews-table {
+  min-width: 720px;
 }
 
 .backlog-table thead th {
@@ -1464,6 +1479,7 @@ footer p {
   }
 
   .backlog-message,
+  .backlog-empty,
   .backlog-retention {
     padding-inline: 1.15rem;
   }

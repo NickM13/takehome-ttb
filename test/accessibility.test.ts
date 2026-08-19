@@ -54,7 +54,7 @@ describe("static accessibility safeguards", () => {
     expect(html).toMatch(
       /<label class="upload" for="label">[\s\S]*<input[\s\S]*id="label"[\s\S]*type="file"[\s\S]*<\/label>/,
     );
-    expect(html.match(/<caption/g)).toHaveLength(1);
+    expect(html.match(/<caption/g)).toHaveLength(2);
     expect(html).toContain('aria-describedby="file-name form-message"');
   });
 
@@ -102,10 +102,27 @@ describe("static accessibility safeguards", () => {
     expect(html).toContain('id="previous-backlog-page-button"');
     expect(html).toContain('id="next-backlog-page-button"');
     expect(clientScript).toContain("const BACKLOG_PAGE_SIZE = 10");
-    expect(clientScript).toContain("backlogReviews.slice(pageStart, pageEnd)");
+    expect(clientScript).toContain("pendingReviews.slice(pageStart, pageEnd)");
     expect(clientScript).toContain("selectedBacklogReviewIds.has(");
     expect(clientScript).toContain("backlogPageIndex += 1");
     expect(clientScript).toContain("backlogPageIndex -= 1");
+  });
+
+  it("separates completed reviews and selects only pending applications", () => {
+    expect(html).toContain('id="completed-reviews-section"');
+    expect(html).toContain('id="completed-reviews-body"');
+    expect(html).toContain('id="completed-reviews-count"');
+    expect(html).toContain('id="backlog-empty"');
+    expect(html).toContain("Select all awaiting reviews");
+    expect(clientScript).toContain("function pendingBacklogReviews()");
+    expect(clientScript).toContain("function completedBacklogReviews()");
+    expect(clientScript).toContain("recordDecisionTime(result)");
+    expect(clientScript).toContain(
+      "for (const review of pendingBacklogReviews())",
+    );
+    expect(clientScript).toContain(
+      'completedReviewsBody.addEventListener("click", openReviewFromTable)',
+    );
   });
 
   it("pages bulk reviews and presents the current label artwork", () => {
