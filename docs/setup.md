@@ -30,9 +30,9 @@ an independent reviewer disposition of `approved` or `rejected`. The AI status
 is retained unchanged for auditability. Every complete review also has a final
 human decision of `approved` or `rejected`. Pending applications remain in the
 review backlog; a final decision moves the application into the separate
-completed table. Both tables can reopen a review. **Download CSV** creates an
-annotated export with `review_decision`, field-level `reviewer_decision`, and
-`reviewer_note` columns from the review that is currently open.
+completed table. Both tables can reopen a review. An annotated CSV export is not
+currently exposed in the application-review workspace; the bottom action returns
+to the review backlog and matches the top navigation action.
 
 The **Label artwork** section also offers three official TTB sample labels. A
 selection loads the artwork into the same preview used for uploaded files and
@@ -78,7 +78,7 @@ The government health warning is not a caller-entered field because its required
 
 For a batch, attach 2–10 images as repeated `labels` fields and provide `applications` as a JSON array in the same order. Every array item uses the application fields above. The server processes at most two images concurrently and preserves failed items as `needs_review` rows instead of discarding successful results.
 
-Requests with `Accept: application/json` return the structured on-page result plus its request-scoped CSV export. The browser displays the review first and downloads that CSV only when the reviewer selects **Download CSV**. Requests with `Accept: text/csv` return the CSV as an attachment for direct API clients. Invalid uploads and extraction failures return a structured JSON error with a non-2xx status.
+Requests with `Accept: application/json` return the structured on-page result plus its request-scoped CSV export. The browser displays the review without a review-workspace download action. Requests with `Accept: text/csv` return the CSV as an attachment for direct API clients. Invalid uploads and extraction failures return a structured JSON error with a non-2xx status.
 
 `GET /sample-reviews.csv` returns the checked-in field-level synthetic backlog
 fixture. It is demo data, not a durable review store. Reviewer annotations are

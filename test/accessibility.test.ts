@@ -164,6 +164,9 @@ describe("static accessibility safeguards", () => {
       "updateReviewerFieldStatus(reviewerStatusIndicator, field, annotation)",
     );
     expect(clientScript).toContain(
+      'field.field === "government_warning" ? "Required value" : "Entered value"',
+    );
+    expect(clientScript).toContain(
       "caption.textContent = `Verification fields for ${",
     );
     expect(clientScript).toContain('"AI comparison", "Reviewer status"');
@@ -187,6 +190,11 @@ describe("static accessibility safeguards", () => {
     expect(html).toContain('id="back-from-verification-button"');
     expect(html).toContain('id="back-to-backlog-top-button"');
     expect(html).toContain('id="back-to-backlog-button"');
+    expect(html).not.toContain('id="review-another-button"');
+    expect(html).not.toContain('id="download-button"');
+    expect(html).toMatch(
+      /class="results-actions">[\s\S]*?class="results-heading-actions">[\s\S]*?id="back-to-backlog-button"/,
+    );
     expect(clientScript).toContain("function showBacklogView()");
     expect(clientScript).toContain("function showVerificationView()");
     expect(clientScript).toContain("function showReviewView()");

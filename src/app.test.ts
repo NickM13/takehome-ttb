@@ -3,6 +3,7 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createApp } from "./app.js";
+import { REQUIRED_GOVERNMENT_WARNING } from "./domain/regulatory-rules.js";
 import { AppError } from "./errors.js";
 import type { ExtractionProvider } from "./providers/extraction-provider.js";
 import { MockExtractionProvider } from "./providers/mock-extraction-provider.js";
@@ -117,7 +118,6 @@ describe("application", () => {
     const response = await request(buildApp()).get("/").expect(200);
     expect(response.text).toContain("Alcohol Label Verification");
     expect(response.text).toContain("Application review");
-    expect(response.text).toContain("Download CSV");
     expect(response.text).toContain("Review backlog");
     expect(response.text).toContain('id="backlog-body"');
     expect(response.text).toContain("Reviewer decision");
@@ -134,6 +134,8 @@ describe("application", () => {
     expect(response.text).toContain('id="back-from-verification-button"');
     expect(response.text).toContain('id="back-to-backlog-top-button"');
     expect(response.text).toContain('id="back-to-backlog-button"');
+    expect(response.text).not.toContain('id="review-another-button"');
+    expect(response.text).not.toContain('id="download-button"');
     expect(response.text).toContain('id="reviewer-summary"');
     expect(response.text).toContain('id="review-artwork-image"');
     expect(response.text).toContain('id="review-pager"');
@@ -216,6 +218,13 @@ describe("application", () => {
     expect(response.text).toContain("DEMO-001");
     expect(response.text).toContain("DEMO-012");
     expect(response.text).toContain("needs_review");
+    expect(response.text.split(REQUIRED_GOVERNMENT_WARNING).length - 1).toBe(
+      22,
+    );
+    expect(response.text).toContain(
+      "GOVERNMENT WARNING: Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems.",
+    );
+    expect(response.text).toContain("women [obscured] pregnancy");
     for (let reviewNumber = 1; reviewNumber <= 12; reviewNumber += 1) {
       const reviewId = `DEMO-${String(reviewNumber).padStart(3, "0")},`;
       expect(lines.filter((line) => line.startsWith(reviewId))).toHaveLength(7);

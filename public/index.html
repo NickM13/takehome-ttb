@@ -31,14 +31,14 @@
           <h2 id="intro-title">Check the routine fields in one clear step.</h2>
           <p class="lede">
             Enter the values from the application, attach the label artwork, and
-            review each comparison before downloading a CSV report. You remain
+            review each comparison before making a final decision. You remain
             the final reviewer.
           </p>
         </div>
         <ol class="process" aria-label="Verification process">
           <li><span>1</span>Enter application data</li>
           <li><span>2</span>Attach one label image</li>
-          <li><span>3</span>Review and export results</li>
+          <li><span>3</span>Review and decide</li>
         </ol>
       </section>
 
@@ -170,8 +170,8 @@
             <p class="step-label">Completed this session</p>
             <h2 id="completed-reviews-title">Approved and rejected</h2>
             <p>
-              Completed applications remain available for review and CSV export
-              until this page is refreshed.
+              Completed applications remain available for review until this page
+              is refreshed.
             </p>
           </div>
           <span id="completed-reviews-count" class="backlog-count"></span>
@@ -243,7 +243,7 @@
                   placeholder="e.g., COLA-2026-00125"
                 />
                 <p id="application-id-hint" class="hint">
-                  Used only to name and correlate the CSV report.
+                  Used to identify and correlate the review.
                 </p>
               </div>
 
@@ -547,10 +547,7 @@
         </section>
 
         <div class="results-actions">
-          <p>
-            Reviewer decisions and notes are included when you download the CSV.
-          </p>
-          <div>
+          <div class="results-heading-actions">
             <button
               id="back-to-backlog-button"
               class="secondary-button"
@@ -558,14 +555,6 @@
             >
               Back to review backlog
             </button>
-            <button
-              id="review-another-button"
-              class="secondary-button"
-              type="button"
-            >
-              Start new verification
-            </button>
-            <button id="download-button" type="button">Download CSV</button>
           </div>
         </div>
       </section>

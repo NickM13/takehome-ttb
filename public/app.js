@@ -67,8 +67,6 @@ const nextReviewButton = document.querySelector("#next-review-button");
 const reviewPageSelect = document.querySelector("#review-page-select");
 const reviewPageStatus = document.querySelector("#review-page-status");
 const resultsBody = document.querySelector("#results-body");
-const downloadButton = document.querySelector("#download-button");
-const reviewAnotherButton = document.querySelector("#review-another-button");
 const backToBacklogTopButton = document.querySelector(
   "#back-to-backlog-top-button",
 );
@@ -1188,7 +1186,11 @@ function createFieldResultRows(result, field, annotations, fieldIndex) {
   detailPanel.className = "field-details-panel";
   const values = document.createElement("dl");
   values.className = "result-detail-values";
-  appendResultValue(values, "Entered value", field.expectedValue);
+  appendResultValue(
+    values,
+    field.field === "government_warning" ? "Required value" : "Entered value",
+    field.expectedValue,
+  );
 
   const observedContent = document.createElement("span");
   const observedValue = document.createElement("span");
@@ -1392,60 +1394,6 @@ function renderResults(payload, options = {}) {
   showReviewView();
 }
 
-function spreadsheetSafe(value) {
-  const text = String(value ?? "");
-  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-}
-
-function serializeCsvCell(value) {
-  const safeValue = spreadsheetSafe(value);
-  return /[",\r\n]/.test(safeValue)
-    ? `"${safeValue.replaceAll('"', '""')}"`
-    : safeValue;
-}
-
-function createReviewedCsv(results, annotations, reviewDecisions) {
-  const headers = [
-    "application_id",
-    "source_file",
-    "overall_status",
-    "review_decision",
-    "field",
-    "expected_value",
-    "observed_value",
-    "field_status",
-    "confidence",
-    "explanation",
-    "processing_time_ms",
-    "reviewer_decision",
-    "reviewer_note",
-  ];
-  const rows = [headers];
-
-  for (const result of results) {
-    for (const field of result.fields) {
-      const annotation = annotations[annotationKey(result, field)] ?? {};
-      rows.push([
-        result.applicationId ?? "",
-        result.sourceFile,
-        result.overallStatus,
-        reviewDecisions[reviewKey(result)] ?? "",
-        field.field,
-        field.expectedValue,
-        field.observedValue,
-        field.status,
-        field.confidence,
-        field.explanation,
-        result.processingTimeMs,
-        annotation.decision ?? "",
-        annotation.note ?? "",
-      ]);
-    }
-  }
-
-  return `${rows.map((row) => row.map(serializeCsvCell).join(",")).join("\r\n")}\r\n`;
-}
-
 async function readError(response) {
   try {
     const body = await response.json();
@@ -1617,28 +1565,6 @@ reviewArtworkImage.addEventListener("error", () => {
   reviewArtworkUnavailable.textContent =
     "The label artwork could not be displayed.";
 });
-
-downloadButton.addEventListener("click", () => {
-  if (!activeReview) return;
-  const content = createReviewedCsv(
-    activeReview.results,
-    activeReview.annotations,
-    activeReview.reviewDecisions,
-  );
-  const report = new Blob([content], {
-    type: "text/csv;charset=utf-8",
-  });
-  const downloadUrl = URL.createObjectURL(report);
-  const downloadLink = document.createElement("a");
-  downloadLink.href = downloadUrl;
-  downloadLink.download = activeReview.filename;
-  document.body.append(downloadLink);
-  downloadLink.click();
-  downloadLink.remove();
-  setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
-});
-
-reviewAnotherButton.addEventListener("click", startNewVerification);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();

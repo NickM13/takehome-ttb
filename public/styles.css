@@ -1429,15 +1429,9 @@ button.review-reject-button.selected {
 .results-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1.5rem;
   padding: 1.25rem 2rem 1.5rem;
-}
-
-.results-actions p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.82rem;
 }
 
 .results-actions > div {
