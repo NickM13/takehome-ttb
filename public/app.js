@@ -140,6 +140,20 @@ const sampleLabels = {
     },
   },
 };
+const demoReviewArtwork = {
+  "harbor-light-gin.png": "/sample-labels/demo/harbor-light-gin.svg",
+  "mesa-roja-tequila.png": "/sample-labels/demo/mesa-roja-tequila.svg",
+  "north-fork-vodka.png": "/sample-labels/demo/north-fork-vodka.svg",
+  "stone-bridge-bourbon.png": "/sample-labels/demo/stone-bridge-bourbon.svg",
+  "cascade-pear-brandy.png": "/sample-labels/demo/cascade-pear-brandy.svg",
+  "old-tom-reserve.png": "/sample-labels/demo/old-tom-reserve.svg",
+  "lakeview-riesling.png": "/sample-labels/demo/lakeview-riesling.svg",
+  "copper-finch-ipa.png": "/sample-labels/demo/copper-finch-ipa.svg",
+  "sierra-azul-mezcal.png": "/sample-labels/demo/sierra-azul-mezcal.svg",
+  "red-cedar-rye.png": "/sample-labels/demo/red-cedar-rye.svg",
+  "orchard-gate-cider.png": "/sample-labels/demo/orchard-gate-cider.svg",
+  "atlantic-reserve-rum.png": "/sample-labels/demo/atlantic-reserve-rum.svg",
+};
 const batchFieldDefinitions = [
   {
     key: "applicationId",
@@ -412,7 +426,9 @@ function reviewDisplayName(review) {
 function knownArtworkUrl(sourceFile) {
   return (
     Object.values(sampleLabels).find(({ filename }) => filename === sourceFile)
-      ?.path ?? ""
+      ?.path ??
+    demoReviewArtwork[sourceFile] ??
+    ""
   );
 }
 

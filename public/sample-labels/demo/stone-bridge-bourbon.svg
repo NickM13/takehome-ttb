@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" role="img" aria-labelledby="title desc">
+  <title id="title">Stone Bridge bourbon synthetic demo label</title>
+  <desc id="desc">Synthetic demo label artwork for Stone Bridge bourbon showing 45 percent alcohol by volume.</desc>
+  <rect width="800" height="520" rx="24" fill="#d8c5a7"/>
+  <rect x="28" y="28" width="344" height="464" rx="18" fill="#f4ead6" stroke="#5a3822" stroke-width="6"/>
+  <rect x="428" y="28" width="344" height="464" rx="18" fill="#f4ead6" stroke="#5a3822" stroke-width="6"/>
+  <path d="M90 174h220M110 174c16-64 164-64 180 0M134 174v-42m44 42v-60m44 60v-60m44 60v-42" fill="none" stroke="#71482c" stroke-width="7"/>
+  <g font-family="Georgia, serif" text-anchor="middle" fill="#4a2d1d">
+    <text x="200" y="236" font-size="34" font-weight="700">STONE BRIDGE</text>
+    <text x="200" y="278" font-size="18">KENTUCKY STRAIGHT</text>
+    <text x="200" y="307" font-size="22">BOURBON WHISKEY</text>
+    <text x="200" y="360" font-size="18">45% ALC./VOL. (90 PROOF)</text>
+    <text x="200" y="395" font-size="19">750 mL</text>
+    <text x="600" y="82" font-size="17" font-weight="700">STONE BRIDGE DISTILLERY</text>
+    <text x="600" y="111" font-size="17">BARDSTOWN, KY</text>
+  </g>
+  <g font-family="Arial, sans-serif" fill="#2d211c" font-size="13">
+    <text x="456" y="190" font-weight="700">GOVERNMENT WARNING:</text>
+    <text x="456" y="216">(1) According to the Surgeon General, women</text>
+    <text x="456" y="237">should not drink alcoholic beverages during</text>
+    <text x="456" y="258">pregnancy because of the risk of birth defects.</text>
+    <text x="456" y="287">(2) Consumption of alcoholic beverages impairs</text>
+    <text x="456" y="308">your ability to drive a car or operate machinery,</text>
+    <text x="456" y="329">and may cause health problems.</text>
+    <text x="456" y="448" fill="#765d52">Synthetic demo label • Not for sale</text>
+  </g>
+</svg>

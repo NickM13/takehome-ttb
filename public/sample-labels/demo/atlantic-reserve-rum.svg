@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" role="img" aria-labelledby="title desc">
+  <title id="title">Atlantic Reserve aged rum synthetic demo label</title>
+  <desc id="desc">Synthetic demo label artwork for Atlantic Reserve aged rum imported from Barbados.</desc>
+  <rect width="800" height="520" rx="24" fill="#c9dce5"/>
+  <rect x="28" y="28" width="344" height="464" rx="18" fill="#f4e6c7" stroke="#174a63" stroke-width="6"/>
+  <rect x="428" y="28" width="344" height="464" rx="18" fill="#f4e6c7" stroke="#174a63" stroke-width="6"/>
+  <circle cx="200" cy="149" r="77" fill="#efb34d" opacity=".85"/>
+  <path d="M91 179c52-34 88 34 130 0s68 32 91 0M92 206c52-34 88 34 130 0s68 32 91 0" fill="none" stroke="#174a63" stroke-width="8"/>
+  <g font-family="Georgia, serif" text-anchor="middle" fill="#17394c">
+    <text x="200" y="292" font-size="36" font-weight="700">ATLANTIC RESERVE</text>
+    <text x="200" y="337" font-size="26">AGED RUM</text>
+    <text x="200" y="386" font-size="18">40% ALC./VOL. (80 PROOF)</text>
+    <text x="200" y="421" font-size="19">750 mL</text>
+    <text x="600" y="78" font-size="19" font-weight="700">PRODUCT OF BARBADOS</text>
+    <text x="600" y="112" font-size="16">IMPORTED BY ATLANTIC SPIRITS</text>
+    <text x="600" y="138" font-size="16">TAMPA, FL</text>
+  </g>
+  <g font-family="Arial, sans-serif" fill="#17242d" font-size="13">
+    <text x="456" y="202" font-weight="700">GOVERNMENT WARNING:</text>
+    <text x="456" y="228">(1) According to the Surgeon General, women</text>
+    <text x="456" y="249">should not drink alcoholic beverages during</text>
+    <text x="456" y="270">pregnancy because of the risk of birth defects.</text>
+    <text x="456" y="299">(2) Consumption of alcoholic beverages impairs</text>
+    <text x="456" y="320">your ability to drive a car or operate machinery,</text>
+    <text x="456" y="341">and may cause health problems.</text>
+    <text x="456" y="448" fill="#596b75">Synthetic demo label • Not for sale</text>
+  </g>
+</svg>

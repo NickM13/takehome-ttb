@@ -222,6 +222,39 @@ describe("application", () => {
     }
   });
 
+  it("serves artwork for every sample backlog review", async () => {
+    const artworkMappings = [
+      ["harbor-light-gin.png", "harbor-light-gin.svg"],
+      ["mesa-roja-tequila.png", "mesa-roja-tequila.svg"],
+      ["north-fork-vodka.png", "north-fork-vodka.svg"],
+      ["stone-bridge-bourbon.png", "stone-bridge-bourbon.svg"],
+      ["cascade-pear-brandy.png", "cascade-pear-brandy.svg"],
+      ["old-tom-reserve.png", "old-tom-reserve.svg"],
+      ["lakeview-riesling.png", "lakeview-riesling.svg"],
+      ["copper-finch-ipa.png", "copper-finch-ipa.svg"],
+      ["sierra-azul-mezcal.png", "sierra-azul-mezcal.svg"],
+      ["red-cedar-rye.png", "red-cedar-rye.svg"],
+      ["orchard-gate-cider.png", "orchard-gate-cider.svg"],
+      ["atlantic-reserve-rum.png", "atlantic-reserve-rum.svg"],
+    ];
+    const clientScript = readFileSync(
+      new URL("../public/app.js", import.meta.url),
+      "utf8",
+    );
+
+    for (const [sourceFilename, artworkFilename] of artworkMappings) {
+      const response = await request(buildApp())
+        .get(`/sample-labels/demo/${artworkFilename}`)
+        .expect(200);
+      const artwork = response.body as Buffer;
+      expect(response.headers["content-type"]).toContain("image/svg+xml");
+      expect(artwork.toString("utf8")).toContain("Synthetic demo label");
+      expect(clientScript).toContain(
+        `"${sourceFilename}": "/sample-labels/demo/${artworkFilename}"`,
+      );
+    }
+  });
+
   it("reports the explicitly active fixture provider", async () => {
     const response = await request(buildApp()).get("/api/status").expect(200);
     expect(response.body).toEqual({

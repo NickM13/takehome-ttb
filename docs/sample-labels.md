@@ -24,3 +24,22 @@ The examples are demo fixtures, not proof that the verifier supports every
 beverage-specific regulation. The current MVP checks the seven common fields
 and may correctly return `needs_review` for unsupported unit forms or visual
 rules.
+
+## Synthetic backlog artwork
+
+The 12 reviews in `public/sample-reviews.csv` each have distinct
+repository-backed artwork under `public/sample-labels/demo/`. These SVG fixtures
+were constructed for this prototype and are not real products, approved labels,
+or TTB examples. They intentionally reproduce the visible values represented by
+the demo review, including selected missing, contradictory, or obscured
+evidence.
+
+The CSV retains the fictional source-upload filename, such as
+`harbor-light-gin.png`. `public/app.js` explicitly maps that filename to its
+corresponding synthetic SVG fixture when a sample review is opened. This keeps
+the reported source filename stable while avoiding substitution with unrelated
+official sample artwork.
+
+SVG is used only for these checked-in display fixtures so regulatory text stays
+deterministic and legible. The verification upload path continues to accept only
+the documented raster formats.

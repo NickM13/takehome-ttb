@@ -138,6 +138,11 @@ describe("static accessibility safeguards", () => {
     expect(clientScript).toContain("renderReviewArtwork(");
     expect(clientScript).toContain("activeIndex: 0");
     expect(clientScript).toContain("{ sourceFiles: files }");
+    expect(clientScript).toContain("const demoReviewArtwork = {");
+    expect(clientScript).toContain(
+      '"harbor-light-gin.png": "/sample-labels/demo/harbor-light-gin.svg"',
+    );
+    expect(clientScript).toContain("demoReviewArtwork[sourceFile]");
   });
 
   it("uses an expandable field table with independent review status", () => {
