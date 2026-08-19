@@ -25,6 +25,9 @@ const resultProcessingTime = document.querySelector("#result-processing-time");
 const resultsBody = document.querySelector("#results-body");
 const downloadButton = document.querySelector("#download-button");
 const reviewAnotherButton = document.querySelector("#review-another-button");
+const reducedMotionQuery = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+);
 
 const MAX_BATCH_SIZE = 10;
 const fieldLabels = {
@@ -149,12 +152,19 @@ let backlogReviews = [];
 let selectedSampleFile = null;
 
 function setMessage(text, type = "") {
-  message.textContent = text;
   message.className = `form-message ${type}`.trim();
+  message.setAttribute("role", type === "error" ? "alert" : "status");
+  message.setAttribute("aria-live", type === "error" ? "assertive" : "polite");
+  message.textContent = text;
+}
+
+function preferredScrollBehavior() {
+  return reducedMotionQuery.matches ? "auto" : "smooth";
 }
 
 function setLoading(isLoading, labelCount = 1) {
   submitButton.disabled = isLoading;
+  form.setAttribute("aria-busy", String(isLoading));
   submitButton.classList.toggle("loading", isLoading);
   buttonLabel.textContent = isLoading
     ? `Checking ${labelCount} label${labelCount === 1 ? "" : "s"}…`
@@ -228,8 +238,9 @@ function formatReceivedAt(value, isDemo) {
   }).format(date);
 }
 
-function appendBacklogCell(row, label, value) {
-  const cell = document.createElement("td");
+function appendBacklogCell(row, label, value, rowHeader = false) {
+  const cell = document.createElement(rowHeader ? "th" : "td");
+  if (rowHeader) cell.scope = "row";
   cell.dataset.label = label;
   cell.textContent = value;
   row.append(cell);
@@ -277,6 +288,7 @@ function renderBacklog() {
       row,
       "Application",
       review.applicationId || "Not provided",
+      true,
     );
     appendBacklogCell(row, "Brand", review.brandName || "Not detected");
     appendBacklogCell(
@@ -284,7 +296,7 @@ function renderBacklog() {
       "Received",
       formatReceivedAt(review.submittedAt, review.isDemo),
     );
-    const statusCell = appendBacklogCell(row, "Status", "");
+    const statusCell = appendBacklogCell(row, "AI status", "");
     const status = document.createElement("span");
     status.className = `field-status ${statusClass(review.overallStatus)}`;
     status.textContent = statusLabels[review.overallStatus];
@@ -306,6 +318,10 @@ function renderBacklog() {
     openButton.className = "secondary-button backlog-open-button";
     openButton.dataset.reviewId = review.reviewId;
     openButton.textContent = "Open review";
+    openButton.setAttribute(
+      "aria-label",
+      `Open review for ${review.applicationId || review.brandName || review.sourceFile}`,
+    );
     actionCell.append(openButton);
     backlogBody.append(row);
   }
@@ -434,6 +450,7 @@ function clearSelection() {
   batchApplicationList.replaceChildren();
   previewRegion.hidden = true;
   batchFieldset.hidden = true;
+  fileInput.removeAttribute("aria-invalid");
   fileName.textContent = "Up to 10 JPEG, PNG, or WebP images · 10 MB each";
 }
 
@@ -471,6 +488,7 @@ async function selectSampleLabel() {
     selectedSampleFile = new File([image], sample.filename, {
       type: image.type,
     });
+    fileInput.removeAttribute("aria-invalid");
     fillSampleApplication(sample.application);
     renderSelectedPreviews();
     setMessage(
@@ -521,6 +539,8 @@ function renderBatchApplicationEditors(files) {
     details.open = index === 0;
 
     const summary = document.createElement("summary");
+    const summaryId = `batch-summary-${index}`;
+    summary.id = summaryId;
     summary.textContent = `Label ${index + 1}: ${file.name}`;
     const size = document.createElement("span");
     size.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
@@ -528,6 +548,8 @@ function renderBatchApplicationEditors(files) {
 
     const fields = document.createElement("div");
     fields.className = "field-grid batch-fields";
+    fields.setAttribute("role", "group");
+    fields.setAttribute("aria-labelledby", summaryId);
     for (const definition of batchFieldDefinitions) {
       fields.append(createBatchField(definition, index));
     }
@@ -557,6 +579,7 @@ function renderSelectedPreviews() {
   }
 
   previewRegion.hidden = false;
+  fileInput.removeAttribute("aria-invalid");
   selectionCount.textContent = `${files.length} label${files.length === 1 ? "" : "s"} selected`;
   fileName.textContent =
     files.length === 1
@@ -602,8 +625,9 @@ function batchApplications() {
   );
 }
 
-function createResultCell(row, label) {
-  const cell = document.createElement("td");
+function createResultCell(row, label, rowHeader = false) {
+  const cell = document.createElement(rowHeader ? "th" : "td");
+  if (rowHeader) cell.scope = "row";
   cell.dataset.label = label;
   row.append(cell);
   return cell;
@@ -699,10 +723,12 @@ function renderReviewDecisions(results, reviewDecisions) {
     const decisionId = `review-decision-${index}`;
     const label = document.createElement("label");
     label.htmlFor = decisionId;
-    label.textContent =
-      results.length === 1
-        ? result.applicationId || "This review"
-        : result.applicationId || `Label ${index + 1}: ${result.sourceFile}`;
+    const reviewName =
+      result.applicationId ||
+      (results.length === 1
+        ? result.sourceFile
+        : `Label ${index + 1}: ${result.sourceFile}`);
+    label.textContent = `Final decision for ${reviewName}`;
 
     const select = document.createElement("select");
     select.id = decisionId;
@@ -735,12 +761,19 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
 
   const controls = document.createElement("div");
   controls.className = "reviewer-controls";
+  const fieldName = fieldLabels[field.field] ?? field.field;
+  const reviewName = result.applicationId || result.sourceFile;
+  const accessibleContext = ` for ${fieldName} in ${reviewName}`;
 
   if (field.status === "needs_review") {
     const decisionId = `reviewer-decision-${rowIndex}`;
     const decisionLabel = document.createElement("label");
     decisionLabel.htmlFor = decisionId;
-    decisionLabel.textContent = "Decision";
+    decisionLabel.append("Decision");
+    const decisionContext = document.createElement("span");
+    decisionContext.className = "visually-hidden";
+    decisionContext.textContent = accessibleContext;
+    decisionLabel.append(decisionContext);
     const decision = document.createElement("select");
     decision.id = decisionId;
     for (const [value, label] of [
@@ -771,7 +804,11 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
   const noteId = `reviewer-note-${rowIndex}`;
   const noteLabel = document.createElement("label");
   noteLabel.htmlFor = noteId;
-  noteLabel.textContent = "Reviewer note";
+  noteLabel.append("Reviewer note");
+  const noteContext = document.createElement("span");
+  noteContext.className = "visually-hidden";
+  noteContext.textContent = accessibleContext;
+  noteLabel.append(noteContext);
   const note = document.createElement("textarea");
   note.id = noteId;
   note.rows = 3;
@@ -815,7 +852,8 @@ function renderResults(payload, options = {}) {
   overallStatus.textContent = statusLabels[aggregateStatus];
   overallStatus.className = `status-badge ${statusClass(aggregateStatus)}`;
   resultsTitle.textContent =
-    results.length === 1 ? "Label comparison" : "Batch comparison";
+    options.title ??
+    (results.length === 1 ? "Label comparison" : "Batch comparison");
   resultsSummaryText.textContent = summarizeResults(results);
   updateReviewerSummary(results, annotations);
   renderReviewDecisions(results, reviewDecisions);
@@ -833,7 +871,7 @@ function renderResults(payload, options = {}) {
 
     for (const field of result.fields) {
       const row = document.createElement("tr");
-      const fieldCell = createResultCell(row, "Field");
+      const fieldCell = createResultCell(row, "Field", true);
       fieldCell.textContent = fieldLabels[field.field] ?? field.field;
 
       const expectedCell = createResultCell(row, "Entered value");
@@ -881,7 +919,10 @@ function renderResults(payload, options = {}) {
   }
   resultsSection.hidden = false;
   resultsTitle.focus({ preventScroll: true });
-  resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  resultsSection.scrollIntoView({
+    behavior: preferredScrollBehavior(),
+    block: "start",
+  });
 }
 
 function spreadsheetSafe(value) {
@@ -973,6 +1014,7 @@ sampleSelect.addEventListener("change", selectSampleLabel);
 fileInput.addEventListener("change", () => {
   selectedSampleFile = null;
   sampleSelect.value = "";
+  fileInput.removeAttribute("aria-invalid");
   renderSelectedPreviews();
 });
 
@@ -994,9 +1036,9 @@ backlogBody.addEventListener("click", (event) => {
       addToBacklog: false,
       annotations: review.annotations,
       reviewDecisions: review.reviewDecisions,
+      title: "Backlog review",
     },
   );
-  resultsTitle.textContent = "Backlog review";
 });
 
 downloadButton.addEventListener("click", () => {
@@ -1024,7 +1066,10 @@ reviewAnotherButton.addEventListener("click", () => {
   activeReview = null;
   clearSelection();
   setMessage("");
-  form.scrollIntoView({ behavior: "smooth", block: "start" });
+  form.scrollIntoView({
+    behavior: preferredScrollBehavior(),
+    block: "start",
+  });
   sampleSelect.focus({ preventScroll: true });
 });
 
@@ -1035,15 +1080,34 @@ form.addEventListener("submit", async (event) => {
   activeReview = null;
 
   const files = selectedFiles();
-  if (files.length === 0 || !form.reportValidity()) {
+  if (files.length === 0) {
+    fileInput.setAttribute("aria-invalid", "true");
     setMessage(
-      "Complete the required fields and choose at least one label image.",
+      "Choose at least one JPEG, PNG, or WebP label image, or select a sample label.",
+      "error",
+    );
+    fileInput.focus();
+    return;
+  }
+
+  fileInput.removeAttribute("aria-invalid");
+  if (!form.checkValidity()) {
+    const firstInvalidField = form.querySelector(":invalid");
+    const containingDetails = firstInvalidField?.closest("details");
+    if (containingDetails) containingDetails.open = true;
+    form.reportValidity();
+    setMessage(
+      "Review the highlighted required field and provide the missing application value.",
       "error",
     );
     return;
   }
 
   setLoading(true, files.length);
+  setMessage(
+    `Checking ${files.length} label${files.length === 1 ? "" : "s"}. Results will appear below when verification finishes.`,
+    "progress",
+  );
   try {
     const formData = new FormData(form);
     if (selectedSampleFile) {

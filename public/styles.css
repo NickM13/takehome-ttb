@@ -7,6 +7,7 @@
   --blue-100: #dcecf6;
   --blue-50: #f1f7fb;
   --gold-500: #d6a643;
+  --gold-text: #795600;
   --gold-100: #faedc9;
   --ink: #182534;
   --muted: #596777;
@@ -17,6 +18,8 @@
   --danger-bg: #fff1f2;
   --success: #1f6d49;
   --success-bg: #edf8f2;
+  --control-border: #667887;
+  --focus: #005ea8;
   --shadow: 0 18px 45px rgba(7, 29, 53, 0.09);
   font-family:
     Inter,
@@ -65,6 +68,10 @@ textarea {
 
 .skip-link:focus {
   transform: translateY(0);
+}
+
+main:focus {
+  outline: none;
 }
 
 .site-header {
@@ -129,6 +136,10 @@ h2 {
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
+}
+
+.intro .eyebrow {
+  color: var(--gold-text);
 }
 
 main {
@@ -256,11 +267,6 @@ main {
   font-weight: 750;
 }
 
-.backlog-heading-meta a:focus-visible {
-  outline: 3px solid #68aee0;
-  outline-offset: 2px;
-}
-
 .backlog-count {
   padding: 0.3rem 0.65rem;
   color: var(--navy-900);
@@ -298,7 +304,7 @@ main {
   text-align: left;
 }
 
-.backlog-table th {
+.backlog-table thead th {
   padding: 0.65rem 1rem;
   color: white;
   background: var(--navy-800);
@@ -307,24 +313,27 @@ main {
   text-transform: uppercase;
 }
 
-.backlog-table th:first-child,
-.backlog-table td:first-child {
+.backlog-table thead th:first-child,
+.backlog-table tbody th[scope="row"] {
   padding-left: 2rem;
 }
 
-.backlog-table th:last-child,
+.backlog-table thead th:last-child,
 .backlog-table td:last-child {
   padding-right: 2rem;
 }
 
-.backlog-table td {
+.backlog-table td,
+.backlog-table tbody th[scope="row"] {
   padding: 0.8rem 1rem;
+  text-align: left;
   border-bottom: 1px solid #e0e6eb;
   font-size: 0.85rem;
   overflow-wrap: anywhere;
 }
 
-.backlog-table td:first-child {
+.backlog-table tbody th[scope="row"] {
+  padding-left: 2rem;
   color: var(--navy-900);
   font-weight: 750;
 }
@@ -431,7 +440,7 @@ input[type="text"] {
   padding: 0.7rem 0.8rem;
   color: var(--ink);
   background: white;
-  border: 1px solid #9facb9;
+  border: 1px solid var(--control-border);
   border-radius: 0.3rem;
 }
 
@@ -441,7 +450,7 @@ select {
   padding: 0.7rem 2.25rem 0.7rem 0.8rem;
   color: var(--ink);
   background: white;
-  border: 1px solid #9facb9;
+  border: 1px solid var(--control-border);
   border-radius: 0.3rem;
 }
 
@@ -451,14 +460,16 @@ textarea:hover {
   border-color: var(--navy-800);
 }
 
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-button:focus-visible,
-.upload:has(input:focus-visible),
+:where(a, button, input, select, textarea, summary):focus-visible,
 .upload:focus-within {
-  outline: 3px solid #68aee0;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
+  box-shadow: 0 0 0 5px white;
+}
+
+.skip-link:focus-visible {
+  outline-color: white;
+  box-shadow: 0 0 0 5px var(--focus);
 }
 
 .sample-picker {
@@ -538,8 +549,13 @@ button:focus-visible,
   padding: 1.15rem;
   cursor: pointer;
   background: var(--blue-50);
-  border: 2px dashed #86a3b9;
+  border: 2px dashed #607f96;
   border-radius: 0.4rem;
+}
+
+.upload:has(input[aria-invalid="true"]) {
+  border-color: var(--danger);
+  border-style: solid;
 }
 
 .upload:hover {
@@ -571,11 +587,9 @@ button:focus-visible,
 }
 
 .upload-copy span {
-  overflow: hidden;
   color: var(--muted);
   font-size: 0.85rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .upload-button {
@@ -649,9 +663,7 @@ button:focus-visible,
 .preview-card strong,
 .preview-card span {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .preview-card strong {
@@ -707,7 +719,8 @@ button:focus-visible,
 }
 
 .form-message.error,
-.form-message.success {
+.form-message.success,
+.form-message.progress {
   display: block;
 }
 
@@ -721,6 +734,12 @@ button:focus-visible,
   color: var(--success);
   background: var(--success-bg);
   border-left: 4px solid var(--success);
+}
+
+.form-message.progress {
+  color: var(--navy-900);
+  background: var(--blue-100);
+  border-left: 4px solid var(--blue-700);
 }
 
 .form-actions {
@@ -893,12 +912,10 @@ button.loading .spinner {
 .results-summary dd {
   max-width: 240px;
   margin: 0.15rem 0 0;
-  overflow: hidden;
   color: var(--navy-900);
   font-size: 0.88rem;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .review-decision-panel {
@@ -958,7 +975,7 @@ button.loading .spinner {
   text-align: left;
 }
 
-.results-table th {
+.results-table thead th {
   padding: 0.75rem 1rem;
   color: white;
   background: var(--navy-800);
@@ -967,33 +984,35 @@ button.loading .spinner {
   text-transform: uppercase;
 }
 
-.results-table th:first-child {
+.results-table thead th:first-child {
   width: 13%;
   padding-left: 2rem;
 }
 
-.results-table th:nth-child(2),
-.results-table th:nth-child(3) {
+.results-table thead th:nth-child(2),
+.results-table thead th:nth-child(3) {
   width: 20%;
 }
 
-.results-table th:nth-child(4) {
+.results-table thead th:nth-child(4) {
   width: 22%;
 }
 
-.results-table th:last-child {
+.results-table thead th:last-child {
   width: 25%;
   padding-right: 2rem;
 }
 
-.results-table td {
+.results-table td,
+.results-table tbody th[scope="row"] {
   padding: 1rem;
+  text-align: left;
   vertical-align: top;
   border-bottom: 1px solid #e0e6eb;
   overflow-wrap: anywhere;
 }
 
-.results-table td:first-child {
+.results-table tbody th[scope="row"] {
   padding-left: 2rem;
   color: var(--navy-900);
   font-weight: 750;
@@ -1057,7 +1076,7 @@ button.loading .spinner {
   width: 100%;
   color: var(--ink);
   background: white;
-  border: 1px solid #9facb9;
+  border: 1px solid var(--control-border);
   border-radius: 0.3rem;
 }
 
@@ -1192,7 +1211,8 @@ footer p {
   .backlog-table,
   .backlog-table tbody,
   .backlog-table tr,
-  .backlog-table td {
+  .backlog-table td,
+  .backlog-table tbody th[scope="row"] {
     display: block;
     width: 100%;
     min-width: 0;
@@ -1212,7 +1232,7 @@ footer p {
   }
 
   .backlog-table td,
-  .backlog-table td:first-child,
+  .backlog-table tbody th[scope="row"],
   .backlog-table td:last-child {
     display: grid;
     grid-template-columns: minmax(6.5rem, 0.35fr) minmax(0, 0.65fr);
@@ -1221,7 +1241,8 @@ footer p {
     border: 0;
   }
 
-  .backlog-table td::before {
+  .backlog-table td::before,
+  .backlog-table tbody th[scope="row"]::before {
     content: attr(data-label);
     color: var(--muted);
     font-size: 0.7rem;
@@ -1282,7 +1303,8 @@ footer p {
   .results-table,
   .results-table tbody,
   .results-table tr,
-  .results-table td {
+  .results-table td,
+  .results-table tbody th[scope="row"] {
     display: block;
     width: 100%;
     min-width: 0;
@@ -1319,7 +1341,7 @@ footer p {
   }
 
   .results-table td,
-  .results-table td:first-child,
+  .results-table tbody th[scope="row"],
   .results-table td:last-child {
     display: grid;
     grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 0.65fr);
@@ -1328,7 +1350,8 @@ footer p {
     border: 0;
   }
 
-  .results-table td::before {
+  .results-table td::before,
+  .results-table tbody th[scope="row"]::before {
     content: attr(data-label);
     color: var(--muted);
     font-size: 0.7rem;

@@ -12,7 +12,7 @@
     <script src="/app.js" defer></script>
   </head>
   <body>
-    <a class="skip-link" href="#verification-form">Skip to verification form</a>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
 
     <header class="site-header">
       <div class="header-inner">
@@ -24,7 +24,7 @@
       </div>
     </header>
 
-    <main>
+    <main id="main-content" tabindex="-1">
       <section class="intro" aria-labelledby="intro-title">
         <div>
           <p class="eyebrow">Application-to-label review</p>
@@ -122,9 +122,10 @@
                   type="text"
                   maxlength="80"
                   autocomplete="off"
+                  aria-describedby="application-id-hint"
                   placeholder="e.g., COLA-2026-00125"
                 />
-                <p class="hint">
+                <p id="application-id-hint" class="hint">
                   Used only to name and correlate the CSV report.
                 </p>
               </div>
@@ -201,9 +202,12 @@
                   type="text"
                   maxlength="100"
                   autocomplete="country-name"
+                  aria-describedby="country-of-origin-hint"
                   placeholder="e.g., France"
                 />
-                <p class="hint">Leave blank for a domestic product.</p>
+                <p id="country-of-origin-hint" class="hint">
+                  Leave blank for a domestic product.
+                </p>
               </div>
 
               <div class="field field-wide automatic-check">
@@ -222,7 +226,7 @@
             <div class="sample-picker">
               <div>
                 <label for="sample-label">Use a sample label</label>
-                <select id="sample-label">
+                <select id="sample-label" aria-describedby="sample-label-help">
                   <option value="">Choose a TTB sample…</option>
                   <option value="captain-johns">
                     Captain John's Spiced Rum
@@ -235,7 +239,7 @@
                   </option>
                 </select>
               </div>
-              <p>
+              <p id="sample-label-help">
                 Selecting a sample also fills its expected application values.
                 The artwork comes from official, fictitious TTB guidance
                 examples.
@@ -253,20 +257,26 @@
                 >
               </span>
               <span class="upload-button" aria-hidden="true">Browse files</span>
+              <input
+                class="visually-hidden"
+                id="label"
+                name="labels"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                aria-describedby="file-name form-message"
+                multiple
+              />
             </label>
-            <input
-              class="visually-hidden"
-              id="label"
-              name="labels"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-            />
 
             <div id="preview-region" class="preview-region" hidden>
               <div class="preview-heading">
                 <h3>Selected label preview</h3>
-                <p id="selection-count"></p>
+                <p
+                  id="selection-count"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                ></p>
               </div>
               <div id="preview-grid" class="preview-grid"></div>
             </div>
@@ -287,8 +297,9 @@
           <div
             id="form-message"
             class="form-message"
-            role="alert"
-            aria-live="assertive"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
           ></div>
 
           <div class="form-actions">

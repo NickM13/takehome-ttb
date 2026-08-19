@@ -112,6 +112,10 @@ Keep regulatory text and rules in versioned configuration or fixtures with a cit
 
 ## Human-Centered UX
 
+### Mandatory accessibility standard
+
+Before modifying the interface or user-facing content, read `docs/accessibility.md` in full. Every user journey, component, state, and responsive layout must target WCAG 2.2 Level AA and follow that document's implementation and verification requirements. A known Level A or AA failure blocks completion unless the product owner explicitly accepts and documents the limitation. Do not claim WCAG conformance based only on automated checks or a partial audit.
+
 - Use plain language: `Matches`, `Does not match`, and `Needs review` are preferable to model or OCR jargon.
 - Put the primary upload/verify action in the natural reading order and make it visually obvious.
 - Show progress immediately and prevent accidental duplicate submissions.
@@ -262,7 +266,7 @@ Use fixtures covering:
 
 Mock provider calls in unit and integration tests. Keep a small, explicitly marked live-provider smoke test optional so normal test runs remain deterministic, fast, and credential-free.
 
-For UI changes, manually verify the happy path, keyboard navigation, loading state, retry flow, narrow viewport, and error messages. Do not rely on snapshots alone for correctness.
+For UI changes, complete and document the automated, keyboard, zoom/reflow, visual, screen-reader, and state checks in `docs/accessibility.md`. At minimum, manually verify the happy path, keyboard navigation, loading state, retry flow, narrow viewport, and error messages. Do not rely on snapshots or an automated accessibility scan alone for correctness.
 
 ## Definition of Done
 
@@ -272,6 +276,7 @@ A feature is done when:
 - The happy path and important failure paths work in the running application.
 - Relevant automated tests pass.
 - User-visible states are accessible and understandable.
+- The affected flow passes the applicable WCAG 2.2 Level AA checks required by `docs/accessibility.md`, with any gap stated plainly.
 - No secrets or sensitive upload data are logged or committed.
 - Setup or behavior changes are documented.
 - Any known limitation or unsupported regulatory check is stated plainly.
