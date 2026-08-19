@@ -122,8 +122,12 @@ describe("application", () => {
     expect(response.text).toContain('id="backlog-body"');
     expect(response.text).toContain("Reviewer decision");
     expect(response.text).toContain('id="bulk-review-button"');
+    expect(response.text).toContain('id="bulk-selection-summary"');
     expect(response.text).toContain('id="select-all-reviews"');
     expect(response.text).toContain('id="reviewer-summary"');
+    expect(response.text).toContain('id="review-artwork-image"');
+    expect(response.text).toContain('id="review-pager"');
+    expect(response.text).toContain('id="review-page-select"');
     expect(response.text).toContain('class="results-list"');
     expect(response.text).toContain('id="review-decision-list"');
     expect(response.text).toContain("Final reviewer decision");

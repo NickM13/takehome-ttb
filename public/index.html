@@ -63,14 +63,6 @@
               <input id="select-all-reviews" type="checkbox" disabled />
               Select all
             </label>
-            <button
-              id="bulk-review-button"
-              class="secondary-button backlog-bulk-button"
-              type="button"
-              disabled
-            >
-              Start selected reviews (0)
-            </button>
             <a href="/sample-reviews.csv" download>Download sample CSV</a>
           </div>
         </div>
@@ -102,6 +94,24 @@
             </thead>
             <tbody id="backlog-body"></tbody>
           </table>
+        </div>
+        <div class="backlog-bulk-actions">
+          <p
+            id="bulk-selection-summary"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            No reviews selected. Select at least two to start a bulk review.
+          </p>
+          <button
+            id="bulk-review-button"
+            class="secondary-button backlog-bulk-button"
+            type="button"
+            disabled
+          >
+            Start selected reviews (0)
+          </button>
         </div>
         <p class="backlog-retention">
           Demo rows reload from the repository. New reviews remain only for this
@@ -374,7 +384,48 @@
               <dd id="result-processing-time"></dd>
             </div>
           </dl>
+          <figure class="review-artwork">
+            <div class="review-artwork-frame">
+              <img id="review-artwork-image" alt="" hidden />
+              <p id="review-artwork-unavailable">
+                Artwork is not available for this demo fixture.
+              </p>
+            </div>
+            <figcaption id="review-artwork-caption">Label artwork</figcaption>
+          </figure>
         </div>
+
+        <nav
+          id="review-pager"
+          class="review-pager"
+          aria-label="Selected review pages"
+          hidden
+        >
+          <button
+            id="previous-review-button"
+            class="secondary-button"
+            type="button"
+          >
+            Previous review
+          </button>
+          <div class="review-page-picker">
+            <label for="review-page-select">Application to review</label>
+            <select id="review-page-select"></select>
+            <p
+              id="review-page-status"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></p>
+          </div>
+          <button
+            id="next-review-button"
+            class="secondary-button"
+            type="button"
+          >
+            Next review
+          </button>
+        </nav>
 
         <div
           id="results-body"

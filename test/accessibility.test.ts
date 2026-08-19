@@ -83,6 +83,10 @@ describe("static accessibility safeguards", () => {
   it("supports accessible bulk selection and gated final approval", () => {
     expect(html).toContain('id="select-all-reviews"');
     expect(html).toContain('id="bulk-review-button"');
+    expect(html.indexOf('class="backlog-bulk-actions"')).toBeGreaterThan(
+      html.indexOf('class="backlog-table-wrap"'),
+    );
+    expect(html).toContain('id="bulk-selection-summary"');
     expect(clientScript).toContain("selectedBacklogReviewIds");
     expect(clientScript).toContain("function openBacklogReviews(reviews)");
     expect(clientScript).toContain("function resultCanBeApproved(");
@@ -90,6 +94,19 @@ describe("static accessibility safeguards", () => {
       'decisionButton.value === "approved" && !canApprove',
     );
     expect(clientScript).toContain('field.status !== "match"');
+  });
+
+  it("pages bulk reviews and presents the current label artwork", () => {
+    expect(html).toContain('id="review-artwork-image"');
+    expect(html).toContain('id="review-artwork-unavailable"');
+    expect(html).toContain('id="review-pager"');
+    expect(html).toContain('for="review-page-select"');
+    expect(html).toContain('id="previous-review-button"');
+    expect(html).toContain('id="next-review-button"');
+    expect(clientScript).toContain("function renderActiveReviewPage(");
+    expect(clientScript).toContain("renderReviewArtwork(");
+    expect(clientScript).toContain("activeIndex: 0");
+    expect(clientScript).toContain("{ sourceFiles: files }");
   });
 
   it("retains visible focus and reduced-motion behavior", () => {

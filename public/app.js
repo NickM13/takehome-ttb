@@ -18,6 +18,7 @@ const backlogCount = document.querySelector("#backlog-count");
 const backlogMessage = document.querySelector("#backlog-message");
 const selectAllReviews = document.querySelector("#select-all-reviews");
 const bulkReviewButton = document.querySelector("#bulk-review-button");
+const bulkSelectionSummary = document.querySelector("#bulk-selection-summary");
 const resultsSection = document.querySelector("#results-section");
 const resultsAnnouncement = document.querySelector("#results-announcement");
 const resultsTitle = document.querySelector("#results-title");
@@ -27,6 +28,16 @@ const reviewerSummary = document.querySelector("#reviewer-summary");
 const reviewDecisionList = document.querySelector("#review-decision-list");
 const resultSourceFile = document.querySelector("#result-source-file");
 const resultProcessingTime = document.querySelector("#result-processing-time");
+const reviewArtworkImage = document.querySelector("#review-artwork-image");
+const reviewArtworkUnavailable = document.querySelector(
+  "#review-artwork-unavailable",
+);
+const reviewArtworkCaption = document.querySelector("#review-artwork-caption");
+const reviewPager = document.querySelector("#review-pager");
+const previousReviewButton = document.querySelector("#previous-review-button");
+const nextReviewButton = document.querySelector("#next-review-button");
+const reviewPageSelect = document.querySelector("#review-page-select");
+const reviewPageStatus = document.querySelector("#review-page-status");
 const resultsBody = document.querySelector("#results-body");
 const downloadButton = document.querySelector("#download-button");
 const reviewAnotherButton = document.querySelector("#review-another-button");
@@ -153,6 +164,7 @@ const batchFieldDefinitions = [
 
 let activeReview = null;
 let previewUrls = [];
+let sessionReviewImageUrls = [];
 let backlogReviews = [];
 let selectedSampleFile = null;
 const selectedBacklogReviewIds = new Set();
@@ -287,10 +299,30 @@ function reviewDisplayName(review) {
   return review.applicationId || review.brandName || review.sourceFile;
 }
 
+function knownArtworkUrl(sourceFile) {
+  return (
+    Object.values(sampleLabels).find(({ filename }) => filename === sourceFile)
+      ?.path ?? ""
+  );
+}
+
+function createSessionArtworkUrl(file) {
+  if (!file) return "";
+  const imageUrl = URL.createObjectURL(file);
+  sessionReviewImageUrls.push(imageUrl);
+  return imageUrl;
+}
+
 function updateBulkReviewControls() {
   const selectedCount = selectedBacklogReviewIds.size;
   bulkReviewButton.textContent = `Start selected reviews (${selectedCount})`;
   bulkReviewButton.disabled = selectedCount < 2;
+  bulkSelectionSummary.textContent =
+    selectedCount === 0
+      ? "No reviews selected. Select at least two to start a bulk review."
+      : selectedCount === 1
+        ? "1 review selected. Select one more to start a bulk review."
+        : `${selectedCount} reviews selected and ready for bulk review.`;
   selectAllReviews.disabled = backlogReviews.length === 0;
   selectAllReviews.checked =
     backlogReviews.length > 0 && selectedCount === backlogReviews.length;
@@ -423,6 +455,7 @@ async function loadSampleBacklog() {
           filename: safeReportFilename(result.applicationId),
           annotations: {},
           reviewDecisions: {},
+          imageUrl: knownArtworkUrl(result.sourceFile),
           isDemo: true,
         };
       },
@@ -448,7 +481,7 @@ async function loadSampleBacklog() {
   }
 }
 
-function addResultsToBacklog(results, annotations, reviewDecisions) {
+function addResultsToBacklog(results, annotations, reviewDecisions, imageUrls) {
   const submittedAt = new Date().toISOString();
   const completedReviews = results.map((result, index) => {
     const brand = result.fields.find(({ field }) => field === "brand_name");
@@ -464,6 +497,7 @@ function addResultsToBacklog(results, annotations, reviewDecisions) {
       filename: safeReportFilename(result.applicationId),
       annotations,
       reviewDecisions,
+      imageUrl: imageUrls[index] || knownArtworkUrl(result.sourceFile),
       isDemo: false,
     };
   });
@@ -473,6 +507,7 @@ function addResultsToBacklog(results, annotations, reviewDecisions) {
   backlogMessage.hidden = false;
   backlogMessage.classList.remove("error");
   backlogMessage.textContent = `${completedReviews.length} completed review${completedReviews.length === 1 ? " was" : "s were"} added to the top of the backlog.`;
+  return completedReviews;
 }
 
 function selectedFiles() {
@@ -669,16 +704,6 @@ function batchApplications() {
   );
 }
 
-function aggregateResultStatus(results) {
-  if (results.some(({ overallStatus }) => overallStatus === "mismatch")) {
-    return "mismatch";
-  }
-  if (results.some(({ overallStatus }) => overallStatus === "needs_review")) {
-    return "needs_review";
-  }
-  return "match";
-}
-
 function summarizeResults(results, collectionName = "labels") {
   const fields = results.flatMap(({ fields: resultFields }) => resultFields);
   const mismatches = fields.filter(
@@ -859,9 +884,9 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
     }
     decision.addEventListener("change", () => {
       annotation.decision = decision.value;
-      updateReviewerSummary(activeReview.results, annotations);
+      updateReviewerSummary([result], annotations);
       renderReviewDecisions(
-        activeReview.results,
+        [result],
         activeReview.reviewDecisions,
         annotations,
       );
@@ -979,6 +1004,81 @@ function createFieldResultCard(
   return card;
 }
 
+function resultDisplayName(result, index) {
+  return result.applicationId || result.sourceFile || `Review ${index + 1}`;
+}
+
+function renderReviewArtwork(result, imageUrl) {
+  reviewArtworkCaption.textContent = result.sourceFile || "Label artwork";
+  if (imageUrl) {
+    reviewArtworkImage.src = imageUrl;
+    reviewArtworkImage.alt = `Label artwork for ${resultDisplayName(result, activeReview.activeIndex)}`;
+    reviewArtworkImage.hidden = false;
+    reviewArtworkUnavailable.hidden = true;
+    return;
+  }
+
+  reviewArtworkImage.removeAttribute("src");
+  reviewArtworkImage.alt = "";
+  reviewArtworkImage.hidden = true;
+  reviewArtworkUnavailable.hidden = false;
+  reviewArtworkUnavailable.textContent = `Artwork for ${result.sourceFile || "this review"} is not included in the demo fixture.`;
+}
+
+function populateReviewPager() {
+  reviewPageSelect.replaceChildren();
+  activeReview.results.forEach((result, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${index + 1}. ${resultDisplayName(result, index)}`;
+    reviewPageSelect.append(option);
+  });
+  reviewPager.hidden = activeReview.results.length <= 1;
+}
+
+function renderActiveReviewPage(announce = false) {
+  const index = Math.min(
+    Math.max(activeReview.activeIndex, 0),
+    activeReview.results.length - 1,
+  );
+  activeReview.activeIndex = index;
+  const result = activeReview.results[index];
+  const annotations = activeReview.annotations;
+
+  overallStatus.textContent = statusLabels[result.overallStatus];
+  overallStatus.className = `status-badge ${statusClass(result.overallStatus)}`;
+  resultsSummaryText.textContent = summarizeResults([result]);
+  updateReviewerSummary([result], annotations);
+  renderReviewDecisions([result], activeReview.reviewDecisions, annotations);
+  resultSourceFile.textContent = result.sourceFile;
+  resultProcessingTime.textContent = `${result.processingTimeMs.toLocaleString()} ms`;
+  renderReviewArtwork(result, activeReview.imageUrls[index]);
+
+  resultsBody.replaceChildren();
+  const fieldList = document.createElement("div");
+  fieldList.className = "result-field-grid";
+  fieldList.setAttribute("role", "list");
+  fieldList.setAttribute(
+    "aria-label",
+    `Verification fields for ${resultDisplayName(result, index)}`,
+  );
+  result.fields.forEach((field, fieldIndex) => {
+    fieldList.append(
+      createFieldResultCard(result, field, annotations, fieldIndex, "h3"),
+    );
+  });
+  resultsBody.append(fieldList);
+
+  reviewPageSelect.value = String(index);
+  previousReviewButton.disabled = index === 0;
+  nextReviewButton.disabled = index === activeReview.results.length - 1;
+  reviewPageStatus.textContent = `Review ${index + 1} of ${activeReview.results.length}: ${resultDisplayName(result, index)}`;
+
+  if (announce) {
+    resultsAnnouncement.textContent = `${resultDisplayName(result, index)} is ready. ${resultsSummaryText.textContent}`;
+  }
+}
+
 function renderResults(payload, options = {}) {
   const results = Array.isArray(payload?.results)
     ? payload.results
@@ -997,94 +1097,31 @@ function renderResults(payload, options = {}) {
 
   const annotations = options.annotations ?? {};
   const reviewDecisions = options.reviewDecisions ?? {};
+  const suppliedImageUrls = options.imageUrls ?? [];
+  const sourceFiles = options.sourceFiles ?? [];
+  const imageUrls = results.map(
+    (result, index) =>
+      suppliedImageUrls[index] ||
+      createSessionArtworkUrl(sourceFiles[index]) ||
+      knownArtworkUrl(result.sourceFile),
+  );
   activeReview = {
     results,
     filename: payload.report.filename,
     annotations,
     reviewDecisions,
+    imageUrls,
+    activeIndex: 0,
   };
-  resultsBody.replaceChildren();
-
-  const aggregateStatus = aggregateResultStatus(results);
-  overallStatus.textContent = statusLabels[aggregateStatus];
-  overallStatus.className = `status-badge ${statusClass(aggregateStatus)}`;
   resultsTitle.textContent =
     options.title ??
     (results.length === 1 ? "Label comparison" : "Batch comparison");
-  resultsSummaryText.textContent = summarizeResults(
-    results,
-    options.collectionName,
-  );
-  updateReviewerSummary(results, annotations);
-  renderReviewDecisions(results, reviewDecisions, annotations);
-  resultSourceFile.textContent =
-    results.length === 1
-      ? results[0].sourceFile
-      : options.sourceSummary || `${results.length} labels`;
-  const totalProcessingTime = results.reduce(
-    (total, result) => total + result.processingTimeMs,
-    0,
-  );
-  resultProcessingTime.textContent = `${totalProcessingTime.toLocaleString()} ms total`;
-
-  let fieldIndex = 0;
-  results.forEach((result, resultIndex) => {
-    const resultSet = document.createElement("div");
-    resultSet.className = "result-set";
-
-    if (results.length > 1) {
-      const groupHeadingId = `result-group-${resultIndex}`;
-      resultSet.setAttribute("role", "region");
-      resultSet.setAttribute("aria-labelledby", groupHeadingId);
-
-      const groupHeading = document.createElement("div");
-      groupHeading.className = "result-group-heading";
-      const groupCopy = document.createElement("div");
-      const name = document.createElement("h3");
-      name.id = groupHeadingId;
-      name.textContent = `Label ${resultIndex + 1}: ${result.sourceFile}`;
-      const metadata = document.createElement("p");
-      metadata.textContent = result.applicationId
-        ? `Application ${result.applicationId}`
-        : "No application ID";
-      groupCopy.append(name, metadata);
-      const groupStatus = document.createElement("span");
-      groupStatus.className = `field-status ${statusClass(result.overallStatus)}`;
-      groupStatus.textContent = statusLabels[result.overallStatus];
-      groupHeading.append(groupCopy, groupStatus);
-      resultSet.append(groupHeading);
-    }
-
-    const fieldList = document.createElement("div");
-    fieldList.className = "result-field-grid";
-    fieldList.setAttribute("role", "list");
-    fieldList.setAttribute(
-      "aria-label",
-      results.length > 1
-        ? `Verification fields for ${result.applicationId || result.sourceFile}`
-        : "Verification fields",
-    );
-
-    for (const field of result.fields) {
-      fieldList.append(
-        createFieldResultCard(
-          result,
-          field,
-          annotations,
-          fieldIndex,
-          results.length > 1 ? "h4" : "h3",
-        ),
-      );
-      fieldIndex += 1;
-    }
-
-    resultSet.append(fieldList);
-    resultsBody.append(resultSet);
-  });
 
   if (options.addToBacklog !== false) {
-    addResultsToBacklog(results, annotations, reviewDecisions);
+    addResultsToBacklog(results, annotations, reviewDecisions, imageUrls);
   }
+  populateReviewPager();
+  renderActiveReviewPage();
   submissionSection.hidden = true;
   resultsSection.hidden = false;
   resultsAnnouncement.textContent = `${resultsTitle.textContent} is ready. ${resultsSummaryText.textContent}`;
@@ -1211,10 +1248,7 @@ function openBacklogReviews(reviews) {
       annotations,
       reviewDecisions,
       title: isBulkReview ? "Bulk backlog review" : "Backlog review",
-      collectionName: isBulkReview ? "reviews" : "labels",
-      sourceSummary: isBulkReview
-        ? `${reviews.length} backlog reviews`
-        : undefined,
+      imageUrls: reviews.map(({ imageUrl }) => imageUrl || ""),
     },
   );
 }
@@ -1266,6 +1300,38 @@ bulkReviewButton.addEventListener("click", () => {
   );
   if (selectedReviews.length < 2) return;
   openBacklogReviews(selectedReviews);
+});
+
+reviewPageSelect.addEventListener("change", () => {
+  if (!activeReview) return;
+  activeReview.activeIndex = Number(reviewPageSelect.value);
+  renderActiveReviewPage(true);
+});
+
+previousReviewButton.addEventListener("click", () => {
+  if (!activeReview || activeReview.activeIndex === 0) return;
+  activeReview.activeIndex -= 1;
+  renderActiveReviewPage(true);
+});
+
+nextReviewButton.addEventListener("click", () => {
+  if (
+    !activeReview ||
+    activeReview.activeIndex >= activeReview.results.length - 1
+  ) {
+    return;
+  }
+  activeReview.activeIndex += 1;
+  renderActiveReviewPage(true);
+});
+
+reviewArtworkImage.addEventListener("error", () => {
+  reviewArtworkImage.removeAttribute("src");
+  reviewArtworkImage.alt = "";
+  reviewArtworkImage.hidden = true;
+  reviewArtworkUnavailable.hidden = false;
+  reviewArtworkUnavailable.textContent =
+    "The label artwork could not be displayed.";
 });
 
 downloadButton.addEventListener("click", () => {
@@ -1353,7 +1419,7 @@ form.addEventListener("submit", async (event) => {
 
     if (!response.ok) throw new Error(await readError(response));
 
-    renderResults(await response.json());
+    renderResults(await response.json(), { sourceFiles: files });
     setMessage("");
   } catch (error) {
     setMessage(
@@ -1367,6 +1433,12 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-window.addEventListener("pagehide", releasePreviewUrls);
+window.addEventListener("pagehide", () => {
+  releasePreviewUrls();
+  for (const imageUrl of sessionReviewImageUrls) {
+    URL.revokeObjectURL(imageUrl);
+  }
+  sessionReviewImageUrls = [];
+});
 void loadSampleBacklog();
 void loadProviderStatus();
