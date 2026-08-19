@@ -1394,13 +1394,13 @@ button.review-reject-button.selected {
   gap: 0.4rem;
 }
 
-.reviewer-controls label {
+.reviewer-controls label,
+.reviewer-decision-label {
   color: var(--navy-900);
   font-size: 0.75rem;
   font-weight: 750;
 }
 
-.reviewer-controls select,
 .reviewer-controls textarea {
   width: 100%;
   color: var(--ink);
@@ -1409,21 +1409,18 @@ button.review-reject-button.selected {
   border-radius: 0.3rem;
 }
 
-.reviewer-controls select {
-  min-height: 40px;
-  padding: 0.5rem 2rem 0.5rem 0.6rem;
+.reviewer-decision-label {
+  margin: 0;
+}
+
+.field-decision-buttons {
+  width: min(100%, 22rem);
 }
 
 .reviewer-controls textarea {
   min-height: 52px;
   padding: 0.55rem 0.6rem;
   resize: vertical;
-}
-
-.reviewer-decision-unavailable {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.74rem;
 }
 
 .results-actions {

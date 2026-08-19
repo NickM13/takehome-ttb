@@ -894,11 +894,15 @@ function fieldRequiresDecision(field) {
 }
 
 function resultCanBeApproved(result, annotations) {
-  return result.fields.every(
-    (field) =>
-      !fieldRequiresDecision(field) ||
-      annotations[annotationKey(result, field)]?.decision === "approved",
-  );
+  return result.fields.every((field) => {
+    const decision =
+      annotations[annotationKey(result, field)]?.decision ??
+      (fieldRequiresDecision(field) ? "" : "approved");
+    return (
+      decision !== "rejected" &&
+      (!fieldRequiresDecision(field) || decision === "approved")
+    );
+  });
 }
 
 function updateReviewerSummary(results, annotations) {
@@ -907,10 +911,21 @@ function updateReviewerSummary(results, annotations) {
       .filter(fieldRequiresDecision)
       .map((field) => ({ result, field })),
   );
+  const rejectedMatches = results.flatMap((result) =>
+    result.fields
+      .filter(
+        (field) =>
+          !fieldRequiresDecision(field) &&
+          annotations[annotationKey(result, field)]?.decision === "rejected",
+      )
+      .map((field) => ({ result, field })),
+  );
 
   if (reviewableFields.length === 0) {
     reviewerSummary.textContent =
-      "Every automated comparison matches. Notes may still be added to any field.";
+      rejectedMatches.length > 0
+        ? `${rejectedMatches.length} matching field${rejectedMatches.length === 1 ? " is" : "s are"} manually rejected. Resolve the rejection before final approval.`
+        : "Every automated comparison matches and is reviewer-approved by default. Any field may still be rejected or annotated.";
     return;
   }
 
@@ -921,7 +936,9 @@ function updateReviewerSummary(results, annotations) {
   const approved = decisions.filter(
     (decision) => decision === "approved",
   ).length;
-  if (decisions.includes("rejected")) {
+  if (rejectedMatches.length > 0) {
+    reviewerSummary.textContent = `${approved} of ${decisions.length} flagged fields approved. ${rejectedMatches.length} matching field${rejectedMatches.length === 1 ? " is" : "s are"} manually rejected.`;
+  } else if (decisions.includes("rejected")) {
     reviewerSummary.textContent = `${approved} of ${decisions.length} flagged fields approved. At least one field is rejected by the reviewer.`;
   } else if (decisions.every((decision) => decision === "approved")) {
     reviewerSummary.textContent =
@@ -1000,7 +1017,7 @@ function renderReviewDecisions(results, reviewDecisions, annotations) {
             : "Pending";
       status.textContent = canApprove
         ? `Current decision: ${currentLabel}. All fields are ready for final approval.`
-        : `Current decision: ${currentLabel}. Approve every flagged field to enable final approval.`;
+        : `Current decision: ${currentLabel}. Approve every flagged field and resolve reviewer rejections to enable final approval.`;
       for (const decisionButton of decisionButtons) {
         const isSelected = decisionButton.value === currentDecision;
         decisionButton.button.disabled =
@@ -1017,12 +1034,6 @@ function renderReviewDecisions(results, reviewDecisions, annotations) {
 }
 
 function updateReviewerFieldStatus(indicator, field, annotation) {
-  if (!fieldRequiresDecision(field)) {
-    indicator.className = "field-status reviewer-status-not-required";
-    indicator.textContent = "Not required";
-    return;
-  }
-
   if (annotation.decision === "approved") {
     indicator.className = "field-status status-match";
     indicator.textContent = "Approved";
@@ -1030,9 +1041,26 @@ function updateReviewerFieldStatus(indicator, field, annotation) {
     indicator.className = "field-status status-mismatch";
     indicator.textContent = "Rejected";
   } else {
-    indicator.className = "field-status status-needs-review";
-    indicator.textContent = "Needs review";
+    indicator.className = fieldRequiresDecision(field)
+      ? "field-status status-needs-review"
+      : "field-status reviewer-status-not-required";
+    indicator.textContent = fieldRequiresDecision(field)
+      ? "Needs review"
+      : "Optional";
   }
+}
+
+function ensureFieldAnnotation(result, field, annotations) {
+  const key = annotationKey(result, field);
+  const annotation = annotations[key] ?? {
+    decision: fieldRequiresDecision(field) ? "" : "approved",
+    note: "",
+  };
+  if (!fieldRequiresDecision(field) && !annotation.decision) {
+    annotation.decision = "approved";
+  }
+  annotations[key] = annotation;
+  return annotation;
 }
 
 function appendReviewerControls(
@@ -1043,9 +1071,7 @@ function appendReviewerControls(
   rowIndex,
   reviewerStatusIndicator,
 ) {
-  const key = annotationKey(result, field);
-  const annotation = annotations[key] ?? { decision: "", note: "" };
-  annotations[key] = annotation;
+  const annotation = ensureFieldAnnotation(result, field, annotations);
 
   const controls = document.createElement("div");
   controls.className = "reviewer-controls";
@@ -1053,30 +1079,31 @@ function appendReviewerControls(
   const reviewName = result.applicationId || result.sourceFile;
   const accessibleContext = ` for ${fieldName} in ${reviewName}`;
 
-  if (fieldRequiresDecision(field)) {
-    const decisionId = `reviewer-decision-${rowIndex}`;
-    const decisionLabel = document.createElement("label");
-    decisionLabel.htmlFor = decisionId;
-    decisionLabel.append("Reviewer decision");
-    const decisionContext = document.createElement("span");
-    decisionContext.className = "visually-hidden";
-    decisionContext.textContent = accessibleContext;
-    decisionLabel.append(decisionContext);
-    const decision = document.createElement("select");
-    decision.id = decisionId;
-    for (const [value, label] of [
-      ["", "Select a decision"],
-      ["approved", "Approve"],
-      ["rejected", "Reject"],
-    ]) {
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = label;
-      option.selected = annotation.decision === value;
-      decision.append(option);
-    }
-    decision.addEventListener("change", () => {
-      annotation.decision = decision.value;
+  const decisionLabelId = `reviewer-decision-label-${rowIndex}`;
+  const decisionLabel = document.createElement("p");
+  decisionLabel.id = decisionLabelId;
+  decisionLabel.className = "reviewer-decision-label";
+  decisionLabel.textContent = fieldRequiresDecision(field)
+    ? "Reviewer decision (required)"
+    : "Reviewer decision (optional; defaults to Approve)";
+  const decisionButtons = document.createElement("div");
+  decisionButtons.className = "review-decision-buttons field-decision-buttons";
+  decisionButtons.setAttribute("role", "group");
+  decisionButtons.setAttribute("aria-labelledby", decisionLabelId);
+  const fieldDecisionButtons = [];
+
+  for (const [value, label, className] of [
+    ["approved", "Approve", "review-approve-button"],
+    ["rejected", "Reject", "review-reject-button"],
+  ]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `review-decision-button ${className}`;
+    button.textContent = label;
+    button.setAttribute("aria-label", `${label}${accessibleContext}`);
+    button.addEventListener("click", () => {
+      annotation.decision = value;
+      updateFieldDecisionButtons();
       updateReviewerFieldStatus(reviewerStatusIndicator, field, annotation);
       updateReviewerSummary([result], annotations);
       renderReviewDecisions(
@@ -1086,14 +1113,23 @@ function appendReviewerControls(
       );
       renderBacklog();
     });
-    controls.append(decisionLabel, decision);
-  } else {
-    const automaticDecision = document.createElement("p");
-    automaticDecision.className = "reviewer-decision-unavailable";
-    automaticDecision.textContent =
-      "No override is required because the automated comparison matches.";
-    controls.append(automaticDecision);
+    fieldDecisionButtons.push({ button, value });
+    decisionButtons.append(button);
   }
+
+  function updateFieldDecisionButtons() {
+    for (const fieldDecisionButton of fieldDecisionButtons) {
+      const isSelected = fieldDecisionButton.value === annotation.decision;
+      fieldDecisionButton.button.setAttribute(
+        "aria-pressed",
+        String(isSelected),
+      );
+      fieldDecisionButton.button.classList.toggle("selected", isSelected);
+    }
+  }
+
+  updateFieldDecisionButtons();
+  controls.append(decisionLabel, decisionButtons);
 
   const noteId = `reviewer-note-${rowIndex}`;
   const noteLabel = document.createElement("label");
@@ -1167,11 +1203,7 @@ function createFieldResultRows(result, field, annotations, fieldIndex) {
   const reviewerCell = document.createElement("td");
   reviewerCell.dataset.label = "Reviewer status";
   const reviewerStatusIndicator = document.createElement("span");
-  const annotation = annotations[annotationKey(result, field)] ?? {
-    decision: "",
-    note: "",
-  };
-  annotations[annotationKey(result, field)] = annotation;
+  const annotation = ensureFieldAnnotation(result, field, annotations);
   updateReviewerFieldStatus(reviewerStatusIndicator, field, annotation);
   reviewerCell.append(reviewerStatusIndicator);
   summaryRow.append(fieldCell, comparisonCell, reviewerCell);

@@ -25,14 +25,16 @@ entries, reviewer decisions, and reviewer notes, then reloads the 12 examples.
 The backlog displays 10 reviews per page; there is no server-side review history
 or database in this MVP.
 
-Every field accepts a reviewer note. An AI result of `needs_review` also accepts
-an independent reviewer disposition of `approved` or `rejected`. The AI status
-is retained unchanged for auditability. Every complete review also has a final
-human decision of `approved` or `rejected`. Pending applications remain in the
-review backlog; a final decision moves the application into the separate
-completed table. Both tables can reopen a review. An annotated CSV export is not
-currently exposed in the application-review workspace; the bottom action returns
-to the review backlog and matches the top navigation action.
+Every field accepts a reviewer note and direct **Approve** and **Reject** field
+buttons. Matching AI comparisons default to reviewer-approved, but that optional
+decision can be changed to rejected. Mismatches and `needs_review` comparisons
+require explicit reviewer approval before final application approval is enabled.
+The AI status is retained unchanged for auditability. Every complete review also
+has a final human decision of `approved` or `rejected`. Pending applications
+remain in the review backlog; a final decision moves the application into the
+separate completed table. Both tables can reopen a review. An annotated CSV
+export is not currently exposed in the application-review workspace; the bottom
+action returns to the review backlog and matches the top navigation action.
 
 The **Label artwork** section also offers three official TTB sample labels. A
 selection loads the artwork into the same preview used for uploaded files and

@@ -63,7 +63,13 @@ describe("static accessibility safeguards", () => {
     expect(clientScript).toContain("`Final decision for ${reviewName}`");
     expect(clientScript).toContain('button.setAttribute("aria-pressed"');
     expect(clientScript).toContain(
-      'decisionContext.className = "visually-hidden"',
+      'decisionButtons.setAttribute("role", "group")',
+    );
+    expect(clientScript).toContain(
+      'decisionButtons.setAttribute("aria-labelledby", decisionLabelId)',
+    );
+    expect(clientScript).toContain(
+      'button.setAttribute("aria-label", `${label}${accessibleContext}`)',
     );
     expect(clientScript).toContain('noteContext.className = "visually-hidden"');
     expect(clientScript).toContain(
@@ -96,6 +102,14 @@ describe("static accessibility safeguards", () => {
       'decisionButton.value === "approved" && !canApprove',
     );
     expect(clientScript).toContain('field.status !== "match"');
+    expect(clientScript).toContain('decision !== "rejected"');
+    expect(clientScript).toContain(
+      'decision: fieldRequiresDecision(field) ? "" : "approved"',
+    );
+    expect(clientScript).toContain(
+      '"Reviewer decision (optional; defaults to Approve)"',
+    );
+    expect(clientScript).not.toContain('document.createElement("select")');
   });
 
   it("pages the backlog at ten reviews while preserving selection", () => {
