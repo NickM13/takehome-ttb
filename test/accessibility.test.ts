@@ -50,24 +50,46 @@ describe("static accessibility safeguards", () => {
     expect(html).toMatch(/<main id="main-content" tabindex="-1">/);
   });
 
-  it("uses native, labeled upload and table elements", () => {
+  it("uses native, labeled upload and backlog table elements", () => {
     expect(html).toMatch(
       /<label class="upload" for="label">[\s\S]*<input[\s\S]*id="label"[\s\S]*type="file"[\s\S]*<\/label>/,
     );
-    expect(html.match(/<caption/g)).toHaveLength(2);
+    expect(html.match(/<caption/g)).toHaveLength(1);
     expect(html).toContain('aria-describedby="file-name form-message"');
   });
 
   it("keeps dynamic controls distinguishable to assistive technology", () => {
     expect(clientScript).toContain("`Open review for ${");
-    expect(clientScript).toContain(
-      "label.textContent = `Final decision for ${reviewName}`",
-    );
+    expect(clientScript).toContain("`Final decision for ${reviewName}`");
+    expect(clientScript).toContain('button.setAttribute("aria-pressed"');
     expect(clientScript).toContain(
       'decisionContext.className = "visually-hidden"',
     );
     expect(clientScript).toContain('noteContext.className = "visually-hidden"');
-    expect(clientScript).toContain('cell.scope = "row"');
+    expect(clientScript).toContain('card.setAttribute("role", "listitem")');
+  });
+
+  it("uses a focused review mode with final decisions after the evidence", () => {
+    const evidencePosition = html.indexOf('class="results-list"');
+    const finalDecisionPosition = html.indexOf('class="review-decision-panel"');
+    expect(evidencePosition).toBeGreaterThan(-1);
+    expect(finalDecisionPosition).toBeGreaterThan(evidencePosition);
+    expect(clientScript).toContain("submissionSection.hidden = true");
+    expect(clientScript).toContain("submissionSection.hidden = false");
+    expect(clientScript).toContain('"review-approve-button"');
+    expect(clientScript).toContain('"review-reject-button"');
+  });
+
+  it("supports accessible bulk selection and gated final approval", () => {
+    expect(html).toContain('id="select-all-reviews"');
+    expect(html).toContain('id="bulk-review-button"');
+    expect(clientScript).toContain("selectedBacklogReviewIds");
+    expect(clientScript).toContain("function openBacklogReviews(reviews)");
+    expect(clientScript).toContain("function resultCanBeApproved(");
+    expect(clientScript).toContain(
+      'decisionButton.value === "approved" && !canApprove',
+    );
+    expect(clientScript).toContain('field.status !== "match"');
   });
 
   it("retains visible focus and reduced-motion behavior", () => {

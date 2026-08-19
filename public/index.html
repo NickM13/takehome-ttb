@@ -54,10 +54,23 @@
             <p>
               Six demo reviews are preloaded and can be opened below. Reviews
               completed in this browser are added to the top of the queue.
+              Select two or more to review them together.
             </p>
           </div>
           <div class="backlog-heading-meta">
             <span id="backlog-count" class="backlog-count">Loading…</span>
+            <label class="backlog-select-all" for="select-all-reviews">
+              <input id="select-all-reviews" type="checkbox" disabled />
+              Select all
+            </label>
+            <button
+              id="bulk-review-button"
+              class="secondary-button backlog-bulk-button"
+              type="button"
+              disabled
+            >
+              Start selected reviews (0)
+            </button>
             <a href="/sample-reviews.csv" download>Download sample CSV</a>
           </div>
         </div>
@@ -78,6 +91,7 @@
             </caption>
             <thead>
               <tr>
+                <th class="backlog-select-column" scope="col">Select</th>
                 <th scope="col">Application</th>
                 <th scope="col">Brand</th>
                 <th scope="col">Received</th>
@@ -95,11 +109,15 @@
         </p>
       </section>
 
-      <section class="card" aria-labelledby="form-title">
+      <section
+        id="submission-section"
+        class="card"
+        aria-labelledby="form-title"
+      >
         <div class="card-heading">
           <div>
             <p class="step-label">Single-label review</p>
-            <h2 id="form-title">Application details</h2>
+            <h2 id="form-title" tabindex="-1">Application details</h2>
           </div>
           <p><span aria-hidden="true">*</span> Required fields</p>
         </div>
@@ -321,9 +339,16 @@
         aria-labelledby="results-title"
         hidden
       >
+        <p
+          id="results-announcement"
+          class="visually-hidden"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        ></p>
         <div class="results-heading">
           <div>
-            <p class="step-label">Verification complete</p>
+            <p class="step-label">Review workspace</p>
             <h2 id="results-title" tabindex="-1">Label comparison</h2>
           </div>
           <span id="overall-status" class="status-badge"></span>
@@ -351,36 +376,26 @@
           </dl>
         </div>
 
+        <div
+          id="results-body"
+          class="results-list"
+          aria-label="Entered application values compared with AI-observed label values"
+        ></div>
+
         <section
           class="review-decision-panel"
           aria-labelledby="review-decision-title"
         >
           <div>
             <h3 id="review-decision-title">Final reviewer decision</h3>
-            <p>
-              Record the human outcome after reviewing the automated evidence.
+            <p class="review-decision-help">
+              After reviewing the evidence and field notes, approve or reject
+              the review. Final approval is available only when every flagged
+              field is approved.
             </p>
           </div>
           <div id="review-decision-list" class="review-decision-list"></div>
         </section>
-
-        <div class="results-table-wrap">
-          <table class="results-table">
-            <caption class="visually-hidden">
-              Entered application values compared with AI-observed label values
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Field</th>
-                <th scope="col">Entered value</th>
-                <th scope="col">AI-observed value</th>
-                <th scope="col">Comparison</th>
-                <th scope="col">Reviewer action</th>
-              </tr>
-            </thead>
-            <tbody id="results-body"></tbody>
-          </table>
-        </div>
 
         <div class="results-actions">
           <p>
@@ -392,7 +407,7 @@
               class="secondary-button"
               type="button"
             >
-              Review another label
+              Start new verification
             </button>
             <button id="download-button" type="button">Download CSV</button>
           </div>

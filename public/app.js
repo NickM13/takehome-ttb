@@ -1,4 +1,6 @@
 const form = document.querySelector("#verification-form");
+const submissionSection = document.querySelector("#submission-section");
+const formTitle = document.querySelector("#form-title");
 const fileInput = document.querySelector("#label");
 const sampleSelect = document.querySelector("#sample-label");
 const fileName = document.querySelector("#file-name");
@@ -14,7 +16,10 @@ const batchApplicationList = document.querySelector("#batch-application-list");
 const backlogBody = document.querySelector("#backlog-body");
 const backlogCount = document.querySelector("#backlog-count");
 const backlogMessage = document.querySelector("#backlog-message");
+const selectAllReviews = document.querySelector("#select-all-reviews");
+const bulkReviewButton = document.querySelector("#bulk-review-button");
 const resultsSection = document.querySelector("#results-section");
+const resultsAnnouncement = document.querySelector("#results-announcement");
 const resultsTitle = document.querySelector("#results-title");
 const overallStatus = document.querySelector("#overall-status");
 const resultsSummaryText = document.querySelector("#results-summary-text");
@@ -150,6 +155,7 @@ let activeReview = null;
 let previewUrls = [];
 let backlogReviews = [];
 let selectedSampleFile = null;
+const selectedBacklogReviewIds = new Set();
 
 function setMessage(text, type = "") {
   message.className = `form-message ${type}`.trim();
@@ -277,13 +283,49 @@ function safeReportFilename(applicationId) {
   return `verification-${safeId || "review"}.csv`;
 }
 
+function reviewDisplayName(review) {
+  return review.applicationId || review.brandName || review.sourceFile;
+}
+
+function updateBulkReviewControls() {
+  const selectedCount = selectedBacklogReviewIds.size;
+  bulkReviewButton.textContent = `Start selected reviews (${selectedCount})`;
+  bulkReviewButton.disabled = selectedCount < 2;
+  selectAllReviews.disabled = backlogReviews.length === 0;
+  selectAllReviews.checked =
+    backlogReviews.length > 0 && selectedCount === backlogReviews.length;
+  selectAllReviews.indeterminate =
+    selectedCount > 0 && selectedCount < backlogReviews.length;
+}
+
 function renderBacklog() {
   backlogBody.replaceChildren();
+  const availableReviewIds = new Set(
+    backlogReviews.map(({ reviewId }) => reviewId),
+  );
+  for (const reviewId of selectedBacklogReviewIds) {
+    if (!availableReviewIds.has(reviewId)) {
+      selectedBacklogReviewIds.delete(reviewId);
+    }
+  }
   backlogCount.textContent = `${backlogReviews.length} review${backlogReviews.length === 1 ? "" : "s"}`;
 
   for (const review of backlogReviews) {
     const row = document.createElement("tr");
     row.classList.toggle("live-review", !review.isDemo);
+
+    const selectionCell = appendBacklogCell(row, "Select", "");
+    selectionCell.className = "backlog-selection-cell";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.dataset.selectReviewId = review.reviewId;
+    checkbox.checked = selectedBacklogReviewIds.has(review.reviewId);
+    checkbox.setAttribute(
+      "aria-label",
+      `Select review ${reviewDisplayName(review)}`,
+    );
+    selectionCell.append(checkbox);
+
     appendBacklogCell(
       row,
       "Application",
@@ -320,11 +362,13 @@ function renderBacklog() {
     openButton.textContent = "Open review";
     openButton.setAttribute(
       "aria-label",
-      `Open review for ${review.applicationId || review.brandName || review.sourceFile}`,
+      `Open review for ${reviewDisplayName(review)}`,
     );
     actionCell.append(openButton);
     backlogBody.append(row);
   }
+
+  updateBulkReviewControls();
 }
 
 async function loadSampleBacklog() {
@@ -625,14 +669,6 @@ function batchApplications() {
   );
 }
 
-function createResultCell(row, label, rowHeader = false) {
-  const cell = document.createElement(rowHeader ? "th" : "td");
-  if (rowHeader) cell.scope = "row";
-  cell.dataset.label = label;
-  row.append(cell);
-  return cell;
-}
-
 function aggregateResultStatus(results) {
   if (results.some(({ overallStatus }) => overallStatus === "mismatch")) {
     return "mismatch";
@@ -643,7 +679,7 @@ function aggregateResultStatus(results) {
   return "match";
 }
 
-function summarizeResults(results) {
+function summarizeResults(results, collectionName = "labels") {
   const fields = results.flatMap(({ fields: resultFields }) => resultFields);
   const mismatches = fields.filter(
     ({ status }) => status === "mismatch",
@@ -652,7 +688,7 @@ function summarizeResults(results) {
     ({ status }) => status === "needs_review",
   ).length;
   const batchPrefix =
-    results.length > 1 ? `${results.length} labels processed. ` : "";
+    results.length > 1 ? `${results.length} ${collectionName} selected. ` : "";
 
   if (mismatches > 0) {
     return `${batchPrefix}${mismatches} field${mismatches === 1 ? " does" : "s do"} not match the entered application values. Review the evidence below.`;
@@ -663,93 +699,127 @@ function summarizeResults(results) {
   return `${batchPrefix}All configured fields match the entered application values. Confirm the source artwork before making a compliance decision.`;
 }
 
-function appendResultGroup(result, index) {
-  const row = document.createElement("tr");
-  row.className = "result-group";
-  const cell = document.createElement("th");
-  cell.colSpan = 5;
-  cell.scope = "rowgroup";
+function fieldRequiresDecision(field) {
+  return field.status !== "match";
+}
 
-  const name = document.createElement("strong");
-  name.textContent = `Label ${index + 1}: ${result.sourceFile}`;
-  const metadata = document.createElement("span");
-  metadata.textContent = result.applicationId
-    ? `Application ${result.applicationId}`
-    : "No application ID";
-  const status = document.createElement("span");
-  status.className = `field-status ${statusClass(result.overallStatus)}`;
-  status.textContent = statusLabels[result.overallStatus];
-
-  cell.append(name, metadata, status);
-  row.append(cell);
-  resultsBody.append(row);
+function resultCanBeApproved(result, annotations) {
+  return result.fields.every(
+    (field) =>
+      !fieldRequiresDecision(field) ||
+      annotations[annotationKey(result, field)]?.decision === "approved",
+  );
 }
 
 function updateReviewerSummary(results, annotations) {
-  const needsReviewFields = results.flatMap((result) =>
+  const reviewableFields = results.flatMap((result) =>
     result.fields
-      .filter(({ status }) => status === "needs_review")
+      .filter(fieldRequiresDecision)
       .map((field) => ({ result, field })),
   );
 
-  if (needsReviewFields.length === 0) {
+  if (reviewableFields.length === 0) {
     reviewerSummary.textContent =
-      "No field-level disposition is required. Notes may still be added to any field.";
+      "Every automated comparison matches. Notes may still be added to any field.";
     return;
   }
 
-  const decisions = needsReviewFields.map(
+  const decisions = reviewableFields.map(
     ({ result, field }) =>
       annotations[annotationKey(result, field)]?.decision ?? "",
   );
-  const decided = decisions.filter(Boolean).length;
+  const approved = decisions.filter(
+    (decision) => decision === "approved",
+  ).length;
   if (decisions.includes("rejected")) {
-    reviewerSummary.textContent = `${decided} of ${decisions.length} needs-review fields decided. At least one field was rejected.`;
+    reviewerSummary.textContent = `${approved} of ${decisions.length} flagged fields approved. At least one field is rejected by the reviewer.`;
   } else if (decisions.every((decision) => decision === "approved")) {
     reviewerSummary.textContent =
-      "All needs-review fields were approved by the reviewer.";
+      "All flagged fields were approved by the reviewer.";
   } else {
-    reviewerSummary.textContent = `${decided} of ${decisions.length} needs-review fields have a reviewer decision.`;
+    reviewerSummary.textContent = `${approved} of ${decisions.length} flagged fields approved. Approve each remaining field before final approval.`;
   }
 }
 
-function renderReviewDecisions(results, reviewDecisions) {
+function renderReviewDecisions(results, reviewDecisions, annotations) {
   reviewDecisionList.replaceChildren();
 
   results.forEach((result, index) => {
     const item = document.createElement("div");
     item.className = "review-decision-item";
 
-    const decisionId = `review-decision-${index}`;
-    const label = document.createElement("label");
-    label.htmlFor = decisionId;
+    const labelId = `review-decision-label-${index}`;
+    const statusId = `review-decision-status-${index}`;
     const reviewName =
       result.applicationId ||
       (results.length === 1
         ? result.sourceFile
         : `Label ${index + 1}: ${result.sourceFile}`);
+    item.setAttribute("role", "group");
+    item.setAttribute("aria-labelledby", labelId);
+
+    const copy = document.createElement("div");
+    const label = document.createElement("p");
+    label.id = labelId;
+    label.className = "review-decision-label";
     label.textContent = `Final decision for ${reviewName}`;
+    const status = document.createElement("p");
+    status.id = statusId;
+    status.className = "review-decision-status";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    copy.append(label, status);
 
-    const select = document.createElement("select");
-    select.id = decisionId;
-    const currentDecision = reviewDecisions[reviewKey(result)] ?? "";
-    for (const [value, optionLabel] of [
-      ["", "Pending review"],
-      ["approved", "Approved"],
-      ["rejected", "Rejected"],
+    const buttons = document.createElement("div");
+    buttons.className = "review-decision-buttons";
+    const decisionKey = reviewKey(result);
+    const decisionButtons = [];
+
+    for (const [value, buttonLabel, className] of [
+      ["approved", "Approve", "review-approve-button"],
+      ["rejected", "Reject", "review-reject-button"],
     ]) {
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = optionLabel;
-      option.selected = currentDecision === value;
-      select.append(option);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `review-decision-button ${className}`;
+      button.textContent = buttonLabel;
+      button.setAttribute("aria-label", `${buttonLabel} ${reviewName}`);
+      button.setAttribute("aria-describedby", statusId);
+      button.addEventListener("click", () => {
+        reviewDecisions[decisionKey] = value;
+        updateDecisionState();
+        renderBacklog();
+      });
+      decisionButtons.push({ button, value });
+      buttons.append(button);
     }
-    select.addEventListener("change", () => {
-      reviewDecisions[reviewKey(result)] = select.value;
-      renderBacklog();
-    });
 
-    item.append(label, select);
+    function updateDecisionState() {
+      const canApprove = resultCanBeApproved(result, annotations);
+      if (!canApprove && reviewDecisions[decisionKey] === "approved") {
+        reviewDecisions[decisionKey] = "";
+      }
+      const currentDecision = reviewDecisions[decisionKey] ?? "";
+      const currentLabel =
+        currentDecision === "approved"
+          ? "Approved"
+          : currentDecision === "rejected"
+            ? "Rejected"
+            : "Pending";
+      status.textContent = canApprove
+        ? `Current decision: ${currentLabel}. All fields are ready for final approval.`
+        : `Current decision: ${currentLabel}. Approve every flagged field to enable final approval.`;
+      for (const decisionButton of decisionButtons) {
+        const isSelected = decisionButton.value === currentDecision;
+        decisionButton.button.disabled =
+          decisionButton.value === "approved" && !canApprove;
+        decisionButton.button.setAttribute("aria-pressed", String(isSelected));
+        decisionButton.button.classList.toggle("selected", isSelected);
+      }
+    }
+
+    updateDecisionState();
+    item.append(copy, buttons);
     reviewDecisionList.append(item);
   });
 }
@@ -765,11 +835,11 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
   const reviewName = result.applicationId || result.sourceFile;
   const accessibleContext = ` for ${fieldName} in ${reviewName}`;
 
-  if (field.status === "needs_review") {
+  if (fieldRequiresDecision(field)) {
     const decisionId = `reviewer-decision-${rowIndex}`;
     const decisionLabel = document.createElement("label");
     decisionLabel.htmlFor = decisionId;
-    decisionLabel.append("Decision");
+    decisionLabel.append("Reviewer decision");
     const decisionContext = document.createElement("span");
     decisionContext.className = "visually-hidden";
     decisionContext.textContent = accessibleContext;
@@ -790,6 +860,11 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
     decision.addEventListener("change", () => {
       annotation.decision = decision.value;
       updateReviewerSummary(activeReview.results, annotations);
+      renderReviewDecisions(
+        activeReview.results,
+        activeReview.reviewDecisions,
+        annotations,
+      );
       renderBacklog();
     });
     controls.append(decisionLabel, decision);
@@ -797,7 +872,7 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
     const automaticDecision = document.createElement("p");
     automaticDecision.className = "reviewer-decision-unavailable";
     automaticDecision.textContent =
-      "Decision available when AI status is Needs review.";
+      "No override is required because the automated comparison matches.";
     controls.append(automaticDecision);
   }
 
@@ -811,7 +886,7 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
   noteLabel.append(noteContext);
   const note = document.createElement("textarea");
   note.id = noteId;
-  note.rows = 3;
+  note.rows = 2;
   note.maxLength = 1000;
   note.value = annotation.note;
   note.placeholder = "Add context for this field";
@@ -820,6 +895,88 @@ function appendReviewerControls(cell, result, field, annotations, rowIndex) {
   });
   controls.append(noteLabel, note);
   cell.append(controls);
+}
+
+function appendResultValue(list, label, content) {
+  const item = document.createElement("div");
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const description = document.createElement("dd");
+  if (typeof content === "string") {
+    description.textContent = content;
+  } else {
+    description.append(content);
+  }
+  item.append(term, description);
+  list.append(item);
+  return description;
+}
+
+function createFieldResultCard(
+  result,
+  field,
+  annotations,
+  fieldIndex,
+  headingLevel,
+) {
+  const card = document.createElement("article");
+  card.className = `result-card result-card-${field.status.replaceAll("_", "-")}`;
+  card.setAttribute("role", "listitem");
+
+  const headingId = `result-field-${fieldIndex}`;
+  const heading = document.createElement(headingLevel);
+  heading.id = headingId;
+  heading.textContent = fieldLabels[field.field] ?? field.field;
+  card.setAttribute("aria-labelledby", headingId);
+
+  const comparison = document.createElement("span");
+  comparison.className = `field-status ${statusClass(field.status)}`;
+  comparison.textContent = statusLabels[field.status] ?? "Needs review";
+
+  const cardHeading = document.createElement("div");
+  cardHeading.className = "result-card-heading";
+  cardHeading.append(heading, comparison);
+
+  const values = document.createElement("dl");
+  values.className = "result-card-values";
+  appendResultValue(values, "Entered value", field.expectedValue);
+
+  const observedContent = document.createElement("span");
+  const observedValue = document.createElement("span");
+  observedValue.className = "observed-value";
+  if (field.observedValue) {
+    observedValue.textContent = field.observedValue;
+  } else {
+    observedValue.textContent = "Not detected";
+    observedValue.classList.add("empty");
+  }
+  const confidence = document.createElement("span");
+  confidence.className = "confidence";
+  confidence.textContent = `${Math.round(field.confidence * 100)}% extraction confidence`;
+  observedContent.append(observedValue, confidence);
+  appendResultValue(values, "AI-observed value", observedContent);
+
+  const explanation = document.createElement("div");
+  explanation.className = "result-comparison-details";
+  const explanationLabel = document.createElement("strong");
+  explanationLabel.textContent = "Comparison details";
+  const explanationText = document.createElement("p");
+  explanationText.className = "result-explanation";
+  explanationText.textContent = field.explanation;
+  explanation.append(explanationLabel, explanationText);
+
+  const reviewerAction = document.createElement("div");
+  reviewerAction.className = "result-reviewer-action";
+  appendReviewerControls(
+    reviewerAction,
+    result,
+    field,
+    annotations,
+    fieldIndex,
+  );
+
+  card.append(cardHeading, values, explanation, reviewerAction);
+  return card;
 }
 
 function renderResults(payload, options = {}) {
@@ -854,70 +1011,83 @@ function renderResults(payload, options = {}) {
   resultsTitle.textContent =
     options.title ??
     (results.length === 1 ? "Label comparison" : "Batch comparison");
-  resultsSummaryText.textContent = summarizeResults(results);
+  resultsSummaryText.textContent = summarizeResults(
+    results,
+    options.collectionName,
+  );
   updateReviewerSummary(results, annotations);
-  renderReviewDecisions(results, reviewDecisions);
+  renderReviewDecisions(results, reviewDecisions, annotations);
   resultSourceFile.textContent =
-    results.length === 1 ? results[0].sourceFile : `${results.length} labels`;
+    results.length === 1
+      ? results[0].sourceFile
+      : options.sourceSummary || `${results.length} labels`;
   const totalProcessingTime = results.reduce(
     (total, result) => total + result.processingTimeMs,
     0,
   );
   resultProcessingTime.textContent = `${totalProcessingTime.toLocaleString()} ms total`;
 
-  let rowIndex = 0;
+  let fieldIndex = 0;
   results.forEach((result, resultIndex) => {
-    if (results.length > 1) appendResultGroup(result, resultIndex);
+    const resultSet = document.createElement("div");
+    resultSet.className = "result-set";
+
+    if (results.length > 1) {
+      const groupHeadingId = `result-group-${resultIndex}`;
+      resultSet.setAttribute("role", "region");
+      resultSet.setAttribute("aria-labelledby", groupHeadingId);
+
+      const groupHeading = document.createElement("div");
+      groupHeading.className = "result-group-heading";
+      const groupCopy = document.createElement("div");
+      const name = document.createElement("h3");
+      name.id = groupHeadingId;
+      name.textContent = `Label ${resultIndex + 1}: ${result.sourceFile}`;
+      const metadata = document.createElement("p");
+      metadata.textContent = result.applicationId
+        ? `Application ${result.applicationId}`
+        : "No application ID";
+      groupCopy.append(name, metadata);
+      const groupStatus = document.createElement("span");
+      groupStatus.className = `field-status ${statusClass(result.overallStatus)}`;
+      groupStatus.textContent = statusLabels[result.overallStatus];
+      groupHeading.append(groupCopy, groupStatus);
+      resultSet.append(groupHeading);
+    }
+
+    const fieldList = document.createElement("div");
+    fieldList.className = "result-field-grid";
+    fieldList.setAttribute("role", "list");
+    fieldList.setAttribute(
+      "aria-label",
+      results.length > 1
+        ? `Verification fields for ${result.applicationId || result.sourceFile}`
+        : "Verification fields",
+    );
 
     for (const field of result.fields) {
-      const row = document.createElement("tr");
-      const fieldCell = createResultCell(row, "Field", true);
-      fieldCell.textContent = fieldLabels[field.field] ?? field.field;
-
-      const expectedCell = createResultCell(row, "Entered value");
-      expectedCell.textContent = field.expectedValue;
-
-      const observedCell = createResultCell(row, "AI-observed value");
-      const observedValue = document.createElement("span");
-      observedValue.className = "observed-value";
-      if (field.observedValue) {
-        observedValue.textContent = field.observedValue;
-      } else {
-        observedValue.textContent = "Not detected";
-        observedValue.classList.add("empty");
-      }
-      const confidence = document.createElement("span");
-      confidence.className = "confidence";
-      confidence.textContent = `${Math.round(field.confidence * 100)}% extraction confidence`;
-      observedCell.append(observedValue, confidence);
-
-      const comparisonCell = createResultCell(row, "Comparison");
-      const comparison = document.createElement("span");
-      comparison.className = `field-status ${statusClass(field.status)}`;
-      comparison.textContent = statusLabels[field.status] ?? "Needs review";
-      const explanation = document.createElement("p");
-      explanation.className = "result-explanation";
-      explanation.textContent = field.explanation;
-      comparisonCell.append(comparison, explanation);
-
-      const reviewerCell = createResultCell(row, "Reviewer action");
-      appendReviewerControls(
-        reviewerCell,
-        result,
-        field,
-        annotations,
-        rowIndex,
+      fieldList.append(
+        createFieldResultCard(
+          result,
+          field,
+          annotations,
+          fieldIndex,
+          results.length > 1 ? "h4" : "h3",
+        ),
       );
-      rowIndex += 1;
-
-      resultsBody.append(row);
+      fieldIndex += 1;
     }
+
+    resultSet.append(fieldList);
+    resultsBody.append(resultSet);
   });
 
   if (options.addToBacklog !== false) {
     addResultsToBacklog(results, annotations, reviewDecisions);
   }
+  submissionSection.hidden = true;
   resultsSection.hidden = false;
+  resultsAnnouncement.textContent = `${resultsTitle.textContent} is ready. ${resultsSummaryText.textContent}`;
   resultsTitle.focus({ preventScroll: true });
   resultsSection.scrollIntoView({
     behavior: preferredScrollBehavior(),
@@ -1010,6 +1180,45 @@ async function loadProviderStatus() {
   }
 }
 
+function openBacklogReviews(reviews) {
+  if (reviews.length === 0) return;
+
+  const annotations = Object.assign(
+    {},
+    ...reviews.map((review) => review.annotations),
+  );
+  const reviewDecisions = Object.assign(
+    {},
+    ...reviews.map((review) => review.reviewDecisions),
+  );
+  for (const review of reviews) {
+    review.annotations = annotations;
+    review.reviewDecisions = reviewDecisions;
+  }
+
+  const isBulkReview = reviews.length > 1;
+  renderResults(
+    {
+      results: reviews.map(({ result }) => result),
+      report: {
+        filename: isBulkReview
+          ? "verification-selected-reviews.csv"
+          : reviews[0].filename,
+      },
+    },
+    {
+      addToBacklog: false,
+      annotations,
+      reviewDecisions,
+      title: isBulkReview ? "Bulk backlog review" : "Backlog review",
+      collectionName: isBulkReview ? "reviews" : "labels",
+      sourceSummary: isBulkReview
+        ? `${reviews.length} backlog reviews`
+        : undefined,
+    },
+  );
+}
+
 sampleSelect.addEventListener("change", selectSampleLabel);
 fileInput.addEventListener("change", () => {
   selectedSampleFile = null;
@@ -1026,19 +1235,37 @@ backlogBody.addEventListener("click", (event) => {
     ({ reviewId }) => reviewId === openButton.dataset.reviewId,
   );
   if (!review) return;
+  openBacklogReviews([review]);
+});
 
-  renderResults(
-    {
-      results: [review.result],
-      report: { filename: review.filename },
-    },
-    {
-      addToBacklog: false,
-      annotations: review.annotations,
-      reviewDecisions: review.reviewDecisions,
-      title: "Backlog review",
-    },
+backlogBody.addEventListener("change", (event) => {
+  const checkbox = event.target.closest("[data-select-review-id]");
+  if (!checkbox) return;
+
+  if (checkbox.checked) {
+    selectedBacklogReviewIds.add(checkbox.dataset.selectReviewId);
+  } else {
+    selectedBacklogReviewIds.delete(checkbox.dataset.selectReviewId);
+  }
+  updateBulkReviewControls();
+});
+
+selectAllReviews.addEventListener("change", () => {
+  selectedBacklogReviewIds.clear();
+  if (selectAllReviews.checked) {
+    for (const review of backlogReviews) {
+      selectedBacklogReviewIds.add(review.reviewId);
+    }
+  }
+  renderBacklog();
+});
+
+bulkReviewButton.addEventListener("click", () => {
+  const selectedReviews = backlogReviews.filter(({ reviewId }) =>
+    selectedBacklogReviewIds.has(reviewId),
   );
+  if (selectedReviews.length < 2) return;
+  openBacklogReviews(selectedReviews);
 });
 
 downloadButton.addEventListener("click", () => {
@@ -1063,6 +1290,7 @@ downloadButton.addEventListener("click", () => {
 
 reviewAnotherButton.addEventListener("click", () => {
   resultsSection.hidden = true;
+  submissionSection.hidden = false;
   activeReview = null;
   clearSelection();
   setMessage("");
@@ -1070,7 +1298,7 @@ reviewAnotherButton.addEventListener("click", () => {
     behavior: preferredScrollBehavior(),
     block: "start",
   });
-  sampleSelect.focus({ preventScroll: true });
+  formTitle.focus({ preventScroll: true });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -1126,10 +1354,7 @@ form.addEventListener("submit", async (event) => {
     if (!response.ok) throw new Error(await readError(response));
 
     renderResults(await response.json());
-    setMessage(
-      `Verification complete for ${files.length} label${files.length === 1 ? "" : "s"}. Review the comparison results below.`,
-      "success",
-    );
+    setMessage("");
   } catch (error) {
     setMessage(
       error instanceof Error
