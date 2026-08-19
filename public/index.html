@@ -59,12 +59,20 @@
               Twelve demo reviews are preloaded and can be opened below. New
               verifications are added to the top of this queue; final decisions
               move to the completed table. Select two or more to review them
-              together.
+              together, or download all current review results as one CSV.
             </p>
           </div>
           <div class="backlog-heading-meta">
             <button id="start-verification-button" type="button">
               Start new verification
+            </button>
+            <button
+              id="download-results-button"
+              class="secondary-button"
+              type="button"
+              disabled
+            >
+              Download all results CSV
             </button>
             <span id="backlog-count" class="backlog-count">Loading…</span>
             <label class="backlog-select-all" for="select-all-reviews">

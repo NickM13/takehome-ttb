@@ -199,6 +199,11 @@ describe("static accessibility safeguards", () => {
   it("separates backlog, verification, and review into focused views", () => {
     expect(html).toContain('id="backlog-section"');
     expect(html).toContain('id="start-verification-button"');
+    expect(html).toContain('id="download-results-button"');
+    expect(html).toMatch(/id="download-results-button"[\s\S]*?disabled/);
+    expect(html.indexOf('id="download-results-button"')).toBeLessThan(
+      html.indexOf('id="results-section"'),
+    );
     expect(html).toContain('id="submission-section"');
     expect(html).toMatch(/id="submission-section"[\s\S]*?hidden[\s\S]*?>/);
     expect(html).toContain('id="back-from-verification-button"');
@@ -206,6 +211,19 @@ describe("static accessibility safeguards", () => {
     expect(html).toContain('id="back-to-backlog-button"');
     expect(html).not.toContain('id="review-another-button"');
     expect(html).not.toContain('id="download-button"');
+    expect(clientScript).toContain("function createBacklogCsv(reviews)");
+    expect(clientScript).toContain("function downloadBacklogResults()");
+    expect(clientScript).toContain(
+      "const reviews = [...pendingBacklogReviews(), ...completedBacklogReviews()]",
+    );
+    expect(clientScript).toContain("function spreadsheetSafe(value)");
+    expect(clientScript).toContain(
+      "downloadResultsButton.disabled = backlogReviews.length === 0",
+    );
+    expect(clientScript).toContain("/^[=+\\-@\\t\\r]/.test(text)");
+    expect(clientScript).toContain(
+      'downloadResultsButton.addEventListener("click", downloadBacklogResults)',
+    );
     expect(html).toMatch(
       /class="results-actions">[\s\S]*?class="results-heading-actions">[\s\S]*?id="back-to-backlog-button"/,
     );

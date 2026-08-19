@@ -131,6 +131,7 @@ describe("application", () => {
     expect(response.text).toContain('id="backlog-empty"');
     expect(response.text).toContain('id="select-all-reviews"');
     expect(response.text).toContain('id="start-verification-button"');
+    expect(response.text).toContain('id="download-results-button"');
     expect(response.text).toContain('id="back-from-verification-button"');
     expect(response.text).toContain('id="back-to-backlog-top-button"');
     expect(response.text).toContain('id="back-to-backlog-button"');

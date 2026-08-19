@@ -9,6 +9,9 @@ const reviewNote = document.querySelector("#review-note");
 const startVerificationButton = document.querySelector(
   "#start-verification-button",
 );
+const downloadResultsButton = document.querySelector(
+  "#download-results-button",
+);
 const backFromVerificationButton = document.querySelector(
   "#back-from-verification-button",
 );
@@ -563,6 +566,7 @@ function renderBacklog() {
   completedReviewsCount.textContent = `${completedReviews.length} completed`;
   completedReviewsSection.hidden =
     activeView !== "backlog" || completedReviews.length === 0;
+  downloadResultsButton.disabled = backlogReviews.length === 0;
 
   updateBulkReviewControls(pendingReviews);
 }
@@ -1426,6 +1430,81 @@ function renderResults(payload, options = {}) {
   showReviewView();
 }
 
+function spreadsheetSafe(value) {
+  const text = String(value ?? "");
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+function serializeCsvCell(value) {
+  const safeValue = spreadsheetSafe(value);
+  return /[",\r\n]/.test(safeValue)
+    ? `"${safeValue.replaceAll('"', '""')}"`
+    : safeValue;
+}
+
+function createBacklogCsv(reviews) {
+  const headers = [
+    "application_id",
+    "source_file",
+    "overall_status",
+    "review_decision",
+    "field",
+    "expected_value",
+    "observed_value",
+    "field_status",
+    "confidence",
+    "explanation",
+    "processing_time_ms",
+    "reviewer_decision",
+    "reviewer_note",
+  ];
+  const rows = [headers];
+
+  for (const review of reviews) {
+    const { result, annotations, reviewDecisions } = review;
+    for (const field of result.fields) {
+      const annotation = annotations[annotationKey(result, field)] ?? {};
+      rows.push([
+        result.applicationId ?? "",
+        result.sourceFile,
+        result.overallStatus,
+        reviewDecisions[reviewKey(result)] ?? "",
+        field.field,
+        field.expectedValue,
+        field.observedValue,
+        field.status,
+        field.confidence,
+        field.explanation,
+        result.processingTimeMs,
+        annotation.decision ?? (fieldRequiresDecision(field) ? "" : "approved"),
+        annotation.note ?? "",
+      ]);
+    }
+  }
+
+  return `${rows.map((row) => row.map(serializeCsvCell).join(",")).join("\r\n")}\r\n`;
+}
+
+function downloadBacklogResults() {
+  const reviews = [...pendingBacklogReviews(), ...completedBacklogReviews()];
+  if (reviews.length === 0) return;
+
+  const report = new Blob([createBacklogCsv(reviews)], {
+    type: "text/csv;charset=utf-8",
+  });
+  const downloadUrl = URL.createObjectURL(report);
+  const downloadLink = document.createElement("a");
+  downloadLink.href = downloadUrl;
+  downloadLink.download = `ttb-review-results-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.append(downloadLink);
+  downloadLink.click();
+  downloadLink.remove();
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+  backlogMessage.hidden = false;
+  backlogMessage.classList.remove("error");
+  backlogMessage.textContent = `Downloaded ${reviews.length} review${reviews.length === 1 ? "" : "s"} with field evidence and reviewer decisions.`;
+}
+
 async function readError(response) {
   try {
     const body = await response.json();
@@ -1502,6 +1581,7 @@ fileInput.addEventListener("change", () => {
 });
 
 startVerificationButton.addEventListener("click", startNewVerification);
+downloadResultsButton.addEventListener("click", downloadBacklogResults);
 backFromVerificationButton.addEventListener("click", showBacklogView);
 backToBacklogTopButton.addEventListener("click", showBacklogView);
 backToBacklogButton.addEventListener("click", showBacklogView);

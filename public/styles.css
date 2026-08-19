@@ -273,6 +273,12 @@ main {
   font-weight: 750;
 }
 
+.backlog-heading-meta .secondary-button {
+  min-height: 40px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+}
+
 .backlog-count {
   padding: 0.3rem 0.65rem;
   color: var(--navy-900);
